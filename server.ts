@@ -6,7 +6,7 @@ import path from "node:path";
 import { z } from "zod";
 
 // API base URL
-const TASE_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/rows";
+const TASE_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/rows/market/date";
 
 // Define the input schema using Zod
 const getTaseDataSchema = {
@@ -91,7 +91,7 @@ interface ApiResponse {
  */
 async function fetchTaseData(marketType?: string, tradeDate?: string): Promise<{ rows: StockData[]; tradeDate: string }> {
   const params = new URLSearchParams();
-  if (marketType) params.set("marketType", marketType);
+  if (marketType) params.set("markeType", marketType);  // Note: API uses "markeType" (typo)
   if (tradeDate) params.set("tradeDate", tradeDate);
 
   const url = params.toString() ? `${TASE_API_URL}?${params}` : TASE_API_URL;
@@ -109,7 +109,8 @@ async function fetchTaseData(marketType?: string, tradeDate?: string): Promise<{
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json() as ApiResponse;
+  const responseData = await response.json() as { payload: string };
+  const data = JSON.parse(responseData.payload) as ApiResponse;
 
   // Map API response items to StockData interface
   const rows = data.items.map((row): StockData => ({
