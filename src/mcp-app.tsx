@@ -1,11 +1,19 @@
 /**
  * TASE End of Day Data Visualization App
- * Displays Tel Aviv Stock Exchange end of day data with interactive sorting and filtering.
+ * Displays Tel Aviv Stock Exchange end of day data with interactive sorting using TanStack Table.
  */
 import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { StrictMode, useCallback, useEffect, useState } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+} from "@tanstack/react-table";
+import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import styles from "./mcp-app.module.css";
 
@@ -43,10 +51,6 @@ function extractMarketData(callToolResult: CallToolResult): MarketData | null {
   }
 }
 
-function formatNumber(num: number): string {
-  return new Intl.NumberFormat("en-US").format(num);
-}
-
 function formatPrice(price: number): string {
   return price.toFixed(2);
 }
@@ -63,14 +67,15 @@ function formatVolume(volume: number): string {
   if (volume >= 1000) {
     return `${(volume / 1000).toFixed(0)}K`;
   }
-  return formatNumber(volume);
+  return new Intl.NumberFormat("en-US").format(volume);
 }
+
+// Create column helper for type-safe column definitions
+const columnHelper = createColumnHelper<StockData>();
 
 function TaseApp() {
   const [marketData, setMarketData] = useState<MarketData | null>(null);
   const [hostContext, setHostContext] = useState<McpUiHostContext | undefined>();
-  const [sortBy, setSortBy] = useState<string>("symbol");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const { app, error } = useApp({
     appInfo: { name: "TASE End of Day", version: "1.0.0" },
@@ -122,10 +127,6 @@ function TaseApp() {
       app={app}
       marketData={marketData}
       hostContext={hostContext}
-      sortBy={sortBy}
-      setSortBy={setSortBy}
-      sortOrder={sortOrder}
-      setSortOrder={setSortOrder}
     />
   );
 }
@@ -134,55 +135,94 @@ interface TaseAppInnerProps {
   app: App;
   marketData: MarketData | null;
   hostContext?: McpUiHostContext;
-  sortBy: string;
-  setSortBy: (value: string) => void;
-  sortOrder: "asc" | "desc";
-  setSortOrder: (value: "asc" | "desc") => void;
 }
 
 function TaseAppInner({
   app,
   marketData,
   hostContext,
-  sortBy,
-  setSortBy,
-  sortOrder,
-  setSortOrder,
 }: TaseAppInnerProps) {
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "symbol", desc: false },
+  ]);
+
   const handleRefresh = useCallback(async () => {
     try {
       console.info("Calling get-tase-data tool...");
-      const result = await app.callServerTool({
+      await app.callServerTool({
         name: "get-tase-data",
-        arguments: { sortBy, sortOrder },
+        arguments: {},
       });
-      console.info("get-tase-data result:", result);
-      const data = extractMarketData(result);
-      if (data) {
-        // Data will be set via ontoolresult handler
-      }
     } catch (e) {
       console.error("Failed to refresh data:", e);
     }
-  }, [app, sortBy, sortOrder]);
+  }, [app]);
 
-  const handleSort = useCallback((column: string) => {
-    if (sortBy === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(column);
-      setSortOrder(column === "symbol" || column === "name" ? "asc" : "desc");
-    }
-  }, [sortBy, sortOrder, setSortBy, setSortOrder]);
+  // CRITICAL: Memoize columns to prevent infinite re-renders
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("symbol", {
+        header: "Symbol",
+        cell: (info) => (
+          <span className={styles.symbolCell}>{info.getValue()}</span>
+        ),
+      }),
+      columnHelper.accessor("name", {
+        header: "Name",
+        cell: (info) => (
+          <span className={styles.nameCell}>{info.getValue()}</span>
+        ),
+      }),
+      columnHelper.accessor("lastPrice", {
+        header: "Last",
+        cell: (info) => (
+          <span className={styles.priceCell}>{formatPrice(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("change", {
+        header: "Change",
+        cell: (info) => {
+          const value = info.getValue();
+          const className = value > 0 ? styles.positive : value < 0 ? styles.negative : "";
+          return (
+            <span className={`${styles.changeCell} ${className}`}>
+              {value > 0 ? "+" : ""}{formatPrice(value)}
+            </span>
+          );
+        },
+      }),
+      columnHelper.accessor("changePercent", {
+        header: "%",
+        cell: (info) => {
+          const value = info.getValue();
+          const className = value > 0 ? styles.positive : value < 0 ? styles.negative : "";
+          return (
+            <span className={`${styles.changeCell} ${className}`}>
+              {formatPercent(value)}
+            </span>
+          );
+        },
+      }),
+      columnHelper.accessor("volume", {
+        header: "Volume",
+        cell: (info) => (
+          <span className={styles.volumeCell}>{formatVolume(info.getValue())}</span>
+        ),
+      }),
+    ],
+    []
+  );
 
-  // Sort stocks locally for immediate UI feedback
-  const sortedStocks = marketData?.stocks.slice().sort((a, b) => {
-    const aVal = a[sortBy as keyof StockData];
-    const bVal = b[sortBy as keyof StockData];
-    const comparison = typeof aVal === "string"
-      ? aVal.localeCompare(bVal as string)
-      : (aVal as number) - (bVal as number);
-    return sortOrder === "desc" ? -comparison : comparison;
+  // CRITICAL: Memoize data to prevent infinite re-renders
+  const data = useMemo(() => marketData?.stocks ?? [], [marketData?.stocks]);
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
 
   return (
@@ -242,53 +282,46 @@ function TaseAppInner({
       ) : (
         <table className={styles.table}>
           <thead>
-            <tr>
-              <th onClick={() => handleSort("symbol")}>
-                Symbol {sortBy === "symbol" && (sortOrder === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => handleSort("name")}>
-                Name {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => handleSort("lastPrice")}>
-                Last {sortBy === "lastPrice" && (sortOrder === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => handleSort("change")}>
-                Change {sortBy === "change" && (sortOrder === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => handleSort("changePercent")}>
-                % {sortBy === "changePercent" && (sortOrder === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => handleSort("volume")}>
-                Volume {sortBy === "volume" && (sortOrder === "asc" ? "▲" : "▼")}
-              </th>
-            </tr>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                    {{
+                      asc: " ▲",
+                      desc: " ▼",
+                    }[header.column.getIsSorted() as string] ?? ""}
+                  </th>
+                ))}
+              </tr>
+            ))}
           </thead>
           <tbody>
-            {sortedStocks?.map((stock) => (
-              <tr key={stock.symbol}>
-                <td className={styles.symbolCell}>{stock.symbol}</td>
-                <td className={styles.nameCell}>{stock.name}</td>
-                <td className={styles.priceCell}>{formatPrice(stock.lastPrice)}</td>
-                <td
-                  className={`${styles.changeCell} ${
-                    stock.change > 0 ? styles.positive : stock.change < 0 ? styles.negative : ""
-                  }`}
-                >
-                  {stock.change > 0 ? "+" : ""}{formatPrice(stock.change)}
-                </td>
-                <td
-                  className={`${styles.changeCell} ${
-                    stock.changePercent > 0 ? styles.positive : stock.changePercent < 0 ? styles.negative : ""
-                  }`}
-                >
-                  {formatPercent(stock.changePercent)}
-                </td>
-                <td className={styles.volumeCell}>{formatVolume(stock.volume)}</td>
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
         </table>
       )}
+
+      <div className={styles.tableInfo}>
+        Showing {table.getRowModel().rows.length} stocks
+      </div>
     </main>
   );
 }

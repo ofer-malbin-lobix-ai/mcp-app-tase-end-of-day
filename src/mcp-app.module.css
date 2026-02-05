@@ -163,6 +163,12 @@
   margin: 1rem 0;
 }
 
+.tableInfo {
+  margin-top: 1rem;
+  font-size: var(--font-text-sm-size, 0.875rem);
+  color: var(--color-text-secondary, #666);
+}
+
 @media (prefers-color-scheme: dark) {
   .summaryCard {
     background: var(--color-background-secondary, #2a2a2a);
