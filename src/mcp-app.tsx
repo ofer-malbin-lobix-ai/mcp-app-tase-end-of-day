@@ -19,14 +19,17 @@ import styles from "./mcp-app.module.css";
 
 interface StockData {
   symbol: string;
-  name: string;
-  lastPrice: number;
-  change: number;
-  changePercent: number;
-  volume: number;
+  closingPrice: number;
+  openingPrice: number;
   high: number;
   low: number;
-  open: number;
+  change: number;        // percentage change
+  changeValue: number;   // actual change value
+  volume: number;
+  turnover?: number;
+  marketCap?: number;
+  basePrice?: number;
+  marketType?: string;
 }
 
 interface MarketData {
@@ -167,19 +170,13 @@ function TaseAppInner({
           <span className={styles.symbolCell}>{info.getValue()}</span>
         ),
       }),
-      columnHelper.accessor("name", {
-        header: "Name",
-        cell: (info) => (
-          <span className={styles.nameCell}>{info.getValue()}</span>
-        ),
-      }),
-      columnHelper.accessor("lastPrice", {
-        header: "Last",
+      columnHelper.accessor("closingPrice", {
+        header: "Closing",
         cell: (info) => (
           <span className={styles.priceCell}>{formatPrice(info.getValue())}</span>
         ),
       }),
-      columnHelper.accessor("change", {
+      columnHelper.accessor("changeValue", {
         header: "Change",
         cell: (info) => {
           const value = info.getValue();
@@ -191,7 +188,7 @@ function TaseAppInner({
           );
         },
       }),
-      columnHelper.accessor("changePercent", {
+      columnHelper.accessor("change", {
         header: "%",
         cell: (info) => {
           const value = info.getValue();

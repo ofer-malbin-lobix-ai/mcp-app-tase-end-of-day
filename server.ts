@@ -5,11 +5,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 
+// API base URL
+const TASE_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/rows";
+
 // Define the input schema using Zod
 const getTaseDataSchema = {
-  sortBy: z.enum(["symbol", "change", "volume", "lastPrice"]).optional().describe("Sort the data by this field"),
+  marketType: z.enum(["STOCK", "BONDS"]).optional().describe("Market type filter (STOCK or BONDS)"),
+  tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format (default: today)"),
+  sortBy: z.enum(["symbol", "change", "volume", "closingPrice"]).optional().describe("Sort the data by this field"),
   sortOrder: z.enum(["asc", "desc"]).optional().describe("Sort order"),
-  filterSector: z.string().optional().describe("Filter by sector (optional)"),
 };
 
 // Works both from source (server.ts) and compiled (dist/server.js)
@@ -17,33 +21,121 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
 
-// Sample TASE end of day data structure
+// TASE end of day data structure (matches Prisma schema field names)
 interface StockData {
   symbol: string;
-  name: string;
-  lastPrice: number;
-  change: number;
-  changePercent: number;
-  volume: number;
+  closingPrice: number;
+  openingPrice: number;
   high: number;
   low: number;
-  open: number;
+  change: number;        // percentage change
+  changeValue: number;   // actual change value
+  volume: number;
+  turnover?: number;
+  marketCap?: number;
+  basePrice?: number;
+  marketType?: string;
+  // Technical indicators
+  rsi14?: number;
+  macd?: number;
+  macdSignal?: number;
+  macdHist?: number;
+  sma20?: number;
+  sma50?: number;
+  sma200?: number;
 }
 
-// Sample data - replace with actual TASE API integration
-function generateSampleData(): StockData[] {
-  return [
-    { symbol: "TEVA", name: "Teva Pharmaceutical", lastPrice: 52.30, change: 1.20, changePercent: 2.35, volume: 1250000, high: 53.10, low: 51.50, open: 51.80 },
-    { symbol: "CHKP", name: "Check Point Software", lastPrice: 185.40, change: -2.60, changePercent: -1.38, volume: 850000, high: 188.20, low: 184.50, open: 187.80 },
-    { symbol: "NICE", name: "Nice Ltd", lastPrice: 215.80, change: 4.50, changePercent: 2.13, volume: 620000, high: 217.30, low: 212.40, open: 213.20 },
-    { symbol: "LUMI", name: "Bank Leumi", lastPrice: 38.50, change: 0.80, changePercent: 2.12, volume: 2100000, high: 38.90, low: 37.80, open: 38.00 },
-    { symbol: "HAPO", name: "Bank Hapoalim", lastPrice: 42.20, change: -0.30, changePercent: -0.71, volume: 1850000, high: 42.80, low: 41.90, open: 42.50 },
-    { symbol: "DSCT", name: "Bank Discount", lastPrice: 28.70, change: 0.45, changePercent: 1.59, volume: 980000, high: 29.10, low: 28.30, open: 28.40 },
-    { symbol: "BEZQ", name: "Bezeq", lastPrice: 4.85, change: 0.12, changePercent: 2.54, volume: 5200000, high: 4.92, low: 4.75, open: 4.78 },
-    { symbol: "ICL", name: "ICL Group", lastPrice: 24.60, change: -0.85, changePercent: -3.34, volume: 1450000, high: 25.30, low: 24.40, open: 25.20 },
-    { symbol: "ELCO", name: "Elco Holdings", lastPrice: 156.30, change: 3.20, changePercent: 2.09, volume: 320000, high: 157.80, low: 153.50, open: 154.10 },
-    { symbol: "AZRG", name: "Azrieli Group", lastPrice: 285.40, change: -1.80, changePercent: -0.63, volume: 180000, high: 288.20, low: 284.10, open: 287.00 },
-  ];
+// API response row structure based on Prisma schema
+interface ApiRow {
+  tradeDate: string;
+  symbol: string;
+  change: number | null;           // percentage change
+  turnover: number | null;
+  closingPrice: number | null;     // lastPrice
+  basePrice: number | null;
+  openingPrice: number | null;     // open
+  high: number | null;
+  low: number | null;
+  changeValue: number | null;      // actual change value
+  volume: number | null;
+  marketCap: number | null;
+  minContPhaseAmount: number | null;
+  listedCapital: number | null;
+  marketType: string | null;
+  // Technical indicators
+  rsi14: number | null;
+  macd: number | null;
+  macdSignal: number | null;
+  macdHist: number | null;
+  cci20: number | null;
+  mfi14: number | null;
+  turnover10: number | null;
+  sma20: number | null;
+  sma50: number | null;
+  sma200: number | null;
+  stddev20: number | null;
+  upperBollingerBand20: number | null;
+  lowerBollingerBand20: number | null;
+}
+
+// API response structure
+interface ApiResponse {
+  tradeDate: string;
+  marketType: string | null;
+  count: number;
+  items: ApiRow[];
+}
+
+/**
+ * Fetch TASE end of day data from the API
+ */
+async function fetchTaseData(marketType?: string, tradeDate?: string): Promise<{ rows: StockData[]; tradeDate: string }> {
+  const params = new URLSearchParams();
+  if (marketType) params.set("marketType", marketType);
+  if (tradeDate) params.set("tradeDate", tradeDate);
+
+  const url = params.toString() ? `${TASE_API_URL}?${params}` : TASE_API_URL;
+
+  console.log(`Fetching TASE data from: ${url}`);
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Accept": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json() as ApiResponse;
+
+  // Map API response items to StockData interface
+  const rows = data.items.map((row): StockData => ({
+    symbol: row.symbol,
+    closingPrice: row.closingPrice ?? 0,
+    openingPrice: row.openingPrice ?? 0,
+    high: row.high ?? 0,
+    low: row.low ?? 0,
+    change: row.change ?? 0,
+    changeValue: row.changeValue ?? 0,
+    volume: Number(row.volume ?? 0),
+    turnover: row.turnover ? Number(row.turnover) : undefined,
+    marketCap: row.marketCap ? Number(row.marketCap) : undefined,
+    basePrice: row.basePrice ?? undefined,
+    marketType: row.marketType ?? undefined,
+    // Technical indicators
+    rsi14: row.rsi14 ?? undefined,
+    macd: row.macd ?? undefined,
+    macdSignal: row.macdSignal ?? undefined,
+    macdHist: row.macdHist ?? undefined,
+    sma20: row.sma20 ?? undefined,
+    sma50: row.sma50 ?? undefined,
+    sma200: row.sma200 ?? undefined,
+  }));
+
+  return { rows, tradeDate: data.tradeDate };
 }
 
 /**
@@ -68,10 +160,12 @@ export function createServer(): McpServer {
       _meta: { ui: { resourceUri } },
     },
     async (args): Promise<CallToolResult> => {
+      const marketType = args.marketType;
+      const tradeDate = args.tradeDate;
       const sortBy = args.sortBy ?? "symbol";
       const sortOrder = args.sortOrder ?? "asc";
 
-      let data = generateSampleData();
+      const { rows: data, tradeDate: actualTradeDate } = await fetchTaseData(marketType, tradeDate);
 
       // Sort data
       data.sort((a, b) => {
@@ -83,13 +177,13 @@ export function createServer(): McpServer {
         return sortOrder === "desc" ? -comparison : comparison;
       });
 
-      const timestamp = new Date().toISOString();
+      const timestamp = actualTradeDate || new Date().toISOString();
 
       // Calculate market summary
       const totalVolume = data.reduce((sum, s) => sum + s.volume, 0);
-      const gainers = data.filter(s => s.change > 0).length;
-      const losers = data.filter(s => s.change < 0).length;
-      const unchanged = data.filter(s => s.change === 0).length;
+      const gainers = data.filter(s => s.changeValue > 0).length;
+      const losers = data.filter(s => s.changeValue < 0).length;
+      const unchanged = data.filter(s => s.changeValue === 0).length;
 
       return {
         content: [
