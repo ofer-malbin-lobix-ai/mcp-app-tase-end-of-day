@@ -18,18 +18,35 @@ import { createRoot } from "react-dom/client";
 import styles from "./mcp-app.module.css";
 
 interface StockData {
+  tradeDate: string;
   symbol: string;
-  closingPrice: number;
-  openingPrice: number;
-  high: number;
-  low: number;
-  change: number;        // percentage change
-  changeValue: number;   // actual change value
-  volume: number;
-  turnover?: number;
-  marketCap?: number;
-  basePrice?: number;
-  marketType?: string;
+  change: number | null;              // percentage change
+  turnover: number | null;
+  closingPrice: number | null;
+  basePrice: number | null;
+  openingPrice: number | null;
+  high: number | null;
+  low: number | null;
+  changeValue: number | null;
+  volume: number | null;
+  marketCap: number | null;
+  minContPhaseAmount: number | null;
+  listedCapital: number | null;
+  marketType: string | null;
+  // Technical indicators
+  rsi14: number | null;
+  macd: number | null;
+  macdSignal: number | null;
+  macdHist: number | null;
+  cci20: number | null;
+  mfi14: number | null;
+  turnover10: number | null;
+  sma20: number | null;
+  sma50: number | null;
+  sma200: number | null;
+  stddev20: number | null;
+  upperBollingerBand20: number | null;
+  lowerBollingerBand20: number | null;
 }
 
 interface MarketData {
@@ -173,13 +190,13 @@ function TaseAppInner({
       columnHelper.accessor("closingPrice", {
         header: "Closing",
         cell: (info) => (
-          <span className={styles.priceCell}>{formatPrice(info.getValue())}</span>
+          <span className={styles.priceCell}>{formatPrice(info.getValue() ?? 0)}</span>
         ),
       }),
       columnHelper.accessor("changeValue", {
         header: "Change",
         cell: (info) => {
-          const value = info.getValue();
+          const value = info.getValue() ?? 0;
           const className = value > 0 ? styles.positive : value < 0 ? styles.negative : "";
           return (
             <span className={`${styles.changeCell} ${className}`}>
@@ -191,7 +208,7 @@ function TaseAppInner({
       columnHelper.accessor("change", {
         header: "%",
         cell: (info) => {
-          const value = info.getValue();
+          const value = info.getValue() ?? 0;
           const className = value > 0 ? styles.positive : value < 0 ? styles.negative : "";
           return (
             <span className={`${styles.changeCell} ${className}`}>
@@ -203,7 +220,7 @@ function TaseAppInner({
       columnHelper.accessor("volume", {
         header: "Volume",
         cell: (info) => (
-          <span className={styles.volumeCell}>{formatVolume(info.getValue())}</span>
+          <span className={styles.volumeCell}>{formatVolume(Number(info.getValue() ?? 0))}</span>
         ),
       }),
     ],

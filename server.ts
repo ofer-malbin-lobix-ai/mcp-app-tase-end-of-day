@@ -21,42 +21,18 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
 
-// TASE end of day data structure (matches Prisma schema field names)
+// TASE end of day data structure (matches Prisma schema exactly)
 interface StockData {
-  symbol: string;
-  closingPrice: number;
-  openingPrice: number;
-  high: number;
-  low: number;
-  change: number;        // percentage change
-  changeValue: number;   // actual change value
-  volume: number;
-  turnover?: number;
-  marketCap?: number;
-  basePrice?: number;
-  marketType?: string;
-  // Technical indicators
-  rsi14?: number;
-  macd?: number;
-  macdSignal?: number;
-  macdHist?: number;
-  sma20?: number;
-  sma50?: number;
-  sma200?: number;
-}
-
-// API response row structure based on Prisma schema
-interface ApiRow {
   tradeDate: string;
   symbol: string;
-  change: number | null;           // percentage change
+  change: number | null;              // percentage change
   turnover: number | null;
-  closingPrice: number | null;     // lastPrice
+  closingPrice: number | null;
   basePrice: number | null;
-  openingPrice: number | null;     // open
+  openingPrice: number | null;
   high: number | null;
   low: number | null;
-  changeValue: number | null;      // actual change value
+  changeValue: number | null;
   volume: number | null;
   marketCap: number | null;
   minContPhaseAmount: number | null;
@@ -83,7 +59,7 @@ interface ApiResponse {
   tradeDate: string;
   marketType: string | null;
   count: number;
-  items: ApiRow[];
+  items: StockData[];
 }
 
 /**
@@ -112,29 +88,8 @@ async function fetchTaseData(marketType?: string, tradeDate?: string): Promise<{
   const responseData = await response.json() as { payload: string };
   const data = JSON.parse(responseData.payload) as ApiResponse;
 
-  // Map API response items to StockData interface
-  const rows = data.items.map((row): StockData => ({
-    symbol: row.symbol,
-    closingPrice: row.closingPrice ?? 0,
-    openingPrice: row.openingPrice ?? 0,
-    high: row.high ?? 0,
-    low: row.low ?? 0,
-    change: row.change ?? 0,
-    changeValue: row.changeValue ?? 0,
-    volume: Number(row.volume ?? 0),
-    turnover: row.turnover ? Number(row.turnover) : undefined,
-    marketCap: row.marketCap ? Number(row.marketCap) : undefined,
-    basePrice: row.basePrice ?? undefined,
-    marketType: row.marketType ?? undefined,
-    // Technical indicators
-    rsi14: row.rsi14 ?? undefined,
-    macd: row.macd ?? undefined,
-    macdSignal: row.macdSignal ?? undefined,
-    macdHist: row.macdHist ?? undefined,
-    sma20: row.sma20 ?? undefined,
-    sma50: row.sma50 ?? undefined,
-    sma200: row.sma200 ?? undefined,
-  }));
+  // Pass through API response items directly (StockData matches ApiRow)
+  const rows: StockData[] = data.items;
 
   return { rows, tradeDate: data.tradeDate };
 }
@@ -181,10 +136,10 @@ export function createServer(): McpServer {
       const timestamp = actualTradeDate || new Date().toISOString();
 
       // Calculate market summary
-      const totalVolume = data.reduce((sum, s) => sum + s.volume, 0);
-      const gainers = data.filter(s => s.changeValue > 0).length;
-      const losers = data.filter(s => s.changeValue < 0).length;
-      const unchanged = data.filter(s => s.changeValue === 0).length;
+      const totalVolume = data.reduce((sum, s) => sum + Number(s.volume ?? 0), 0);
+      const gainers = data.filter(s => (s.changeValue ?? 0) > 0).length;
+      const losers = data.filter(s => (s.changeValue ?? 0) < 0).length;
+      const unchanged = data.filter(s => (s.changeValue ?? 0) === 0).length;
 
       return {
         content: [
