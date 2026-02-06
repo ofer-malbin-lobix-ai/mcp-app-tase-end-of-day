@@ -101,6 +101,30 @@ export function DataTable<T>({
   const [showFilters, setShowFilters] = useState(false);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
+  const columnSelectorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-close column selector after inactivity
+  const resetColumnSelectorTimeout = () => {
+    if (columnSelectorTimeoutRef.current) {
+      clearTimeout(columnSelectorTimeoutRef.current);
+    }
+    if (showColumnSelector) {
+      columnSelectorTimeoutRef.current = setTimeout(() => {
+        setShowColumnSelector(false);
+      }, 3000);
+    }
+  };
+
+  useEffect(() => {
+    if (showColumnSelector) {
+      resetColumnSelectorTimeout();
+    }
+    return () => {
+      if (columnSelectorTimeoutRef.current) {
+        clearTimeout(columnSelectorTimeoutRef.current);
+      }
+    };
+  }, [showColumnSelector]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -212,7 +236,7 @@ export function DataTable<T>({
             Columns ({visibleCount}/{totalCount})
           </button>
           {showColumnSelector && (
-            <div className={styles.columnSelectorDropdown}>
+            <div className={styles.columnSelectorDropdown} onMouseMove={resetColumnSelectorTimeout}>
               <div className={styles.columnSelectorHeader}>
                 <label className={styles.columnCheckbox}>
                   <input
