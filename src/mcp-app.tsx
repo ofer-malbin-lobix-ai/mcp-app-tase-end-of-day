@@ -431,7 +431,7 @@ function TaseAppInner({
       {!marketData ? (
         <div className={styles.loading}>Waiting for data...</div>
       ) : (
-        <PaginatedTable data={data} columns={columns} initialPageSize={50} />
+        <PaginatedTable data={data} columns={columns} initialPageSize={50} storageKey="tase-column-visibility" />
       )}
     </main>
   );

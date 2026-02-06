@@ -65,19 +65,37 @@ interface PaginatedTableProps<T> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   columns: ColumnDef<T, any>[];
   initialPageSize?: number;
+  storageKey?: string;
 }
 
 export function PaginatedTable<T>({
   data,
   columns,
   initialPageSize = 25,
+  storageKey = "table-column-visibility",
 }: PaginatedTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: initialPageSize,
   });
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Save column visibility to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(columnVisibility));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [columnVisibility, storageKey]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
