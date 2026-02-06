@@ -10,9 +10,55 @@ import {
   type PaginationState,
   type VisibilityState,
   type ColumnFiltersState,
+  type Column,
+  type FilterFn,
 } from "@tanstack/react-table";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import styles from "./PaginatedTable.module.css";
+
+// Range filter for numeric columns
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const numberRangeFilter: FilterFn<any> = (row, columnId, filterValue: [number | "", number | ""]) => {
+  const value = row.getValue(columnId) as number | null;
+  if (value === null || value === undefined) return false;
+
+  const [min, max] = filterValue;
+  if (min !== "" && value < min) return false;
+  if (max !== "" && value > max) return false;
+  return true;
+};
+
+// Component for range filter input
+function RangeFilter<T>({ column }: { column: Column<T, unknown> }) {
+  const filterValue = (column.getFilterValue() as [number | "", number | ""]) ?? ["", ""];
+
+  return (
+    <div className={styles.rangeFilter}>
+      <input
+        type="number"
+        value={filterValue[0]}
+        onChange={(e) => {
+          const val = e.target.value === "" ? "" : Number(e.target.value);
+          column.setFilterValue([val, filterValue[1]]);
+        }}
+        placeholder="Min"
+        className={styles.rangeInput}
+        onClick={(e) => e.stopPropagation()}
+      />
+      <input
+        type="number"
+        value={filterValue[1]}
+        onChange={(e) => {
+          const val = e.target.value === "" ? "" : Number(e.target.value);
+          column.setFilterValue([filterValue[0], val]);
+        }}
+        placeholder="Max"
+        className={styles.rangeInput}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
 
 interface PaginatedTableProps<T> {
   data: T[];
@@ -49,9 +95,38 @@ export function PaginatedTable<T>({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Detect which columns are numeric based on data
+  const numericColumns = useMemo(() => {
+    const numeric = new Set<string>();
+    if (data.length > 0) {
+      const sampleRow = data[0] as Record<string, unknown>;
+      for (const key of Object.keys(sampleRow)) {
+        const value = sampleRow[key];
+        if (typeof value === "number" || (value === null && key !== "symbol" && key !== "marketType" && key !== "tradeDate")) {
+          numeric.add(key);
+        }
+      }
+    }
+    return numeric;
+  }, [data]);
+
+  // Apply range filter function to numeric columns
+  const columnsWithFilters = useMemo(() => {
+    return columns.map((col) => {
+      const colId = (col as { accessorKey?: string }).accessorKey ?? (col as { id?: string }).id;
+      if (colId && numericColumns.has(colId)) {
+        return {
+          ...col,
+          filterFn: numberRangeFilter,
+        };
+      }
+      return col;
+    });
+  }, [columns, numericColumns]);
+
   const table = useReactTable({
     data,
-    columns,
+    columns: columnsWithFilters,
     state: { sorting, pagination, columnVisibility, columnFilters, globalFilter },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
@@ -174,20 +249,27 @@ export function PaginatedTable<T>({
             ))}
             {showFilters && (
               <tr className={styles.filterRow}>
-                {table.getHeaderGroups()[0]?.headers.map((header) => (
-                  <th key={header.id} className={styles.filterCell}>
-                    {header.column.getCanFilter() ? (
-                      <input
-                        type="text"
-                        value={(header.column.getFilterValue() as string) ?? ""}
-                        onChange={(e) => header.column.setFilterValue(e.target.value)}
-                        placeholder={`Filter...`}
-                        className={styles.filterInput}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : null}
-                  </th>
-                ))}
+                {table.getHeaderGroups()[0]?.headers.map((header) => {
+                  const isNumeric = numericColumns.has(header.column.id);
+                  return (
+                    <th key={header.id} className={styles.filterCell}>
+                      {header.column.getCanFilter() ? (
+                        isNumeric ? (
+                          <RangeFilter column={header.column} />
+                        ) : (
+                          <input
+                            type="text"
+                            value={(header.column.getFilterValue() as string) ?? ""}
+                            onChange={(e) => header.column.setFilterValue(e.target.value)}
+                            placeholder={`Filter...`}
+                            className={styles.filterInput}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )
+                      ) : null}
+                    </th>
+                  );
+                })}
               </tr>
             )}
           </thead>
