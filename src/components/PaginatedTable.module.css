@@ -1,7 +1,76 @@
 .tableWrapper {
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
   gap: 1rem;
+}
+
+.columnSelector {
+  position: relative;
+}
+
+.columnSelectorButton {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--color-border-primary, #e5e5e5);
+  border-radius: var(--border-radius-sm, 4px);
+  background: var(--color-background-primary, #fff);
+  color: var(--color-text-primary, inherit);
+  font-family: inherit;
+  font-size: var(--font-text-sm-size, 0.875rem);
+  cursor: pointer;
+}
+
+.columnSelectorButton:hover {
+  background: var(--color-background-secondary, #f5f5f5);
+}
+
+.columnSelectorDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 200px;
+  max-height: 400px;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0;
+  border: 1px solid var(--color-border-primary, #e5e5e5);
+  border-radius: var(--border-radius-sm, 4px);
+  background: var(--color-background-primary, #fff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+}
+
+.columnSelectorHeader {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-primary, #e5e5e5);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.columnSelectorList {
+  display: flex;
+  flex-direction: column;
+}
+
+.columnCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  cursor: pointer;
+  font-size: var(--font-text-sm-size, 0.875rem);
+}
+
+.columnCheckbox:hover {
+  background: var(--color-background-secondary, #f5f5f5);
+}
+
+.columnCheckbox input {
+  cursor: pointer;
 }
 
 .tableContainer {
@@ -115,13 +184,28 @@
     background: var(--color-background-tertiary, #333);
   }
 
+  .columnSelectorButton,
   .pageSizeSelect,
   .pageButton {
     background: var(--color-background-secondary, #2a2a2a);
     border-color: var(--color-border-primary, #444);
   }
 
+  .columnSelectorButton:hover,
   .pageButton:hover:not(:disabled) {
+    background: var(--color-background-tertiary, #333);
+  }
+
+  .columnSelectorDropdown {
+    background: var(--color-background-secondary, #2a2a2a);
+    border-color: var(--color-border-primary, #444);
+  }
+
+  .columnSelectorHeader {
+    border-color: var(--color-border-primary, #444);
+  }
+
+  .columnCheckbox:hover {
     background: var(--color-background-tertiary, #333);
   }
 }

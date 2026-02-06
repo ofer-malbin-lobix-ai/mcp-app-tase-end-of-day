@@ -7,8 +7,9 @@ import {
   type ColumnDef,
   type SortingState,
   type PaginationState,
+  type VisibilityState,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import styles from "./PaginatedTable.module.css";
 
 interface PaginatedTableProps<T> {
@@ -28,13 +29,28 @@ export function PaginatedTable<T>({
     pageIndex: 0,
     pageSize: initialPageSize,
   });
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const columnSelectorRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (columnSelectorRef.current && !columnSelectorRef.current.contains(event.target as Node)) {
+        setShowColumnSelector(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, pagination },
+    state: { sorting, pagination, columnVisibility },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -43,8 +59,48 @@ export function PaginatedTable<T>({
   const pageCount = table.getPageCount();
   const currentPage = pagination.pageIndex + 1;
 
+  const visibleCount = table.getVisibleLeafColumns().length;
+  const totalCount = table.getAllLeafColumns().length;
+
   return (
     <div className={styles.tableWrapper}>
+      <div className={styles.toolbar}>
+        <div className={styles.columnSelector} ref={columnSelectorRef}>
+          <button
+            className={styles.columnSelectorButton}
+            onClick={() => setShowColumnSelector(!showColumnSelector)}
+          >
+            Columns ({visibleCount}/{totalCount})
+          </button>
+          {showColumnSelector && (
+            <div className={styles.columnSelectorDropdown}>
+              <div className={styles.columnSelectorHeader}>
+                <label className={styles.columnCheckbox}>
+                  <input
+                    type="checkbox"
+                    checked={table.getIsAllColumnsVisible()}
+                    onChange={table.getToggleAllColumnsVisibilityHandler()}
+                  />
+                  <span>Toggle All</span>
+                </label>
+              </div>
+              <div className={styles.columnSelectorList}>
+                {table.getAllLeafColumns().map((column) => (
+                  <label key={column.id} className={styles.columnCheckbox}>
+                    <input
+                      type="checkbox"
+                      checked={column.getIsVisible()}
+                      onChange={column.getToggleVisibilityHandler()}
+                    />
+                    <span>{String(column.columnDef.header ?? column.id)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className={styles.tableContainer}>
         <table className={styles.table}>
           <thead>
