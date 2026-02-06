@@ -1,20 +1,14 @@
 /**
  * TASE End of Day Data Visualization App
- * Displays Tel Aviv Stock Exchange end of day data with interactive sorting using TanStack Table.
+ * Displays Tel Aviv Stock Exchange end of day data with interactive sorting and pagination.
  */
 import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  flexRender,
-  createColumnHelper,
-  type SortingState,
-} from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { PaginatedTable } from "./components/PaginatedTable";
 import styles from "./mcp-app.module.css";
 
 interface StockData {
@@ -170,10 +164,6 @@ function TaseAppInner({
   marketData,
   hostContext,
 }: TaseAppInnerProps) {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "symbol", desc: false },
-  ]);
-
   const handleRefresh = useCallback(async () => {
     try {
       console.info("Calling get-tase-data tool...");
@@ -386,15 +376,6 @@ function TaseAppInner({
   // CRITICAL: Memoize data to prevent infinite re-renders
   const data = useMemo(() => marketData?.stocks ?? [], [marketData?.stocks]);
 
-  const table = useReactTable({
-    data,
-    columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
-
   return (
     <main
       className={styles.main}
@@ -450,50 +431,8 @@ function TaseAppInner({
       {!marketData ? (
         <div className={styles.loading}>Waiting for data...</div>
       ) : (
-        <div className={styles.tableContainer}>
-          <table className={styles.table}>
-            <thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      onClick={header.column.getToggleSortingHandler()}
-                      style={{ cursor: "pointer" }}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                      {{
-                        asc: " ▲",
-                        desc: " ▼",
-                      }[header.column.getIsSorted() as string] ?? ""}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <PaginatedTable data={data} columns={columns} initialPageSize={50} />
       )}
-
-      <div className={styles.tableInfo}>
-        Showing {table.getRowModel().rows.length} stocks
-      </div>
     </main>
   );
 }
