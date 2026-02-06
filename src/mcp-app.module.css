@@ -27,6 +27,12 @@
   color: var(--color-text-primary, inherit);
 }
 
+.subtitle {
+  font-size: var(--font-text-md-size, 1rem);
+  color: var(--color-text-secondary, #666);
+  margin-top: 0.25rem;
+}
+
 .timestamp {
   font-size: var(--font-text-sm-size, 0.875rem);
   color: var(--color-text-secondary, #666);

@@ -391,7 +391,16 @@ function TaseAppInner({
       }}
     >
       <div className={styles.header}>
-        <h1 className={styles.title}>TASE End of Day</h1>
+        <div>
+          <h1 className={styles.title}>TASE End of Day</h1>
+          {marketData && marketData.stocks.length > 0 && (
+            <div className={styles.subtitle}>
+              {marketData.stocks[0].tradeDate.split("T")[0]}
+              {" · "}
+              {[...new Set(marketData.stocks.map(s => s.marketType).filter(Boolean))].join(", ") || "All Types"}
+            </div>
+          )}
+        </div>
         {marketData && (
           <span className={styles.timestamp}>
             Updated: {new Date(marketData.timestamp).toLocaleString()}
