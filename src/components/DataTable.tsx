@@ -102,7 +102,6 @@ export function DataTable<T>({
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
   const columnSelectorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Auto-close column selector after inactivity
   const resetColumnSelectorTimeout = () => {
     if (columnSelectorTimeoutRef.current) {

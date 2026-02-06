@@ -435,7 +435,12 @@ function TaseAppInner({
       {!marketData ? (
         <div className={styles.loading}>Waiting for data...</div>
       ) : (
-        <DataTable data={data} columns={columns} initialPageSize={50} storageKey="tase-column-visibility" />
+        <DataTable
+          data={data}
+          columns={columns}
+          initialPageSize={50}
+          storageKey="tase-column-visibility"
+        />
       )}
     </main>
   );
