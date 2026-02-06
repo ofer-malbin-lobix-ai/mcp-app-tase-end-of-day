@@ -14,7 +14,7 @@ import {
   type FilterFn,
 } from "@tanstack/react-table";
 import { useState, useRef, useEffect, useMemo } from "react";
-import styles from "./PaginatedTable.module.css";
+import styles from "./DataTable.module.css";
 
 // Range filter for numeric columns
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,7 +60,7 @@ function RangeFilter<T>({ column }: { column: Column<T, unknown> }) {
   );
 }
 
-interface PaginatedTableProps<T> {
+interface DataTableProps<T> {
   data: T[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   columns: ColumnDef<T, any>[];
@@ -68,12 +68,12 @@ interface PaginatedTableProps<T> {
   storageKey?: string;
 }
 
-export function PaginatedTable<T>({
+export function DataTable<T>({
   data,
   columns,
   initialPageSize = 25,
   storageKey = "table-column-visibility",
-}: PaginatedTableProps<T>) {
+}: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,

@@ -8,7 +8,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { createColumnHelper } from "@tanstack/react-table";
 import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { PaginatedTable } from "./components/PaginatedTable";
+import { DataTable } from "./components/DataTable";
 import styles from "./mcp-app.module.css";
 
 interface StockData {
@@ -435,7 +435,7 @@ function TaseAppInner({
       {!marketData ? (
         <div className={styles.loading}>Waiting for data...</div>
       ) : (
-        <PaginatedTable data={data} columns={columns} initialPageSize={50} storageKey="tase-column-visibility" />
+        <DataTable data={data} columns={columns} initialPageSize={50} storageKey="tase-column-visibility" />
       )}
     </main>
   );
