@@ -81,6 +81,9 @@ function formatPercent(percent: number): string {
 }
 
 function formatVolume(volume: number): string {
+  if (volume >= 1000000000) {
+    return `${(volume / 1000000000).toFixed(1)}B`;
+  }
   if (volume >= 1000000) {
     return `${(volume / 1000000).toFixed(1)}M`;
   }
@@ -88,6 +91,11 @@ function formatVolume(volume: number): string {
     return `${(volume / 1000).toFixed(0)}K`;
   }
   return new Intl.NumberFormat("en-US").format(volume);
+}
+
+function formatNumber(value: number | null, decimals = 2): string {
+  if (value === null) return "—";
+  return value.toFixed(decimals);
 }
 
 // Create column helper for type-safe column definitions
@@ -181,47 +189,195 @@ function TaseAppInner({
   // CRITICAL: Memoize columns to prevent infinite re-renders
   const columns = useMemo(
     () => [
+      // Basic info
       columnHelper.accessor("symbol", {
         header: "Symbol",
         cell: (info) => (
           <span className={styles.symbolCell}>{info.getValue()}</span>
         ),
       }),
+      columnHelper.accessor("marketType", {
+        header: "Type",
+        cell: (info) => <span className={styles.textCell}>{info.getValue() ?? "—"}</span>,
+      }),
+      // Price data
       columnHelper.accessor("closingPrice", {
-        header: "Closing",
+        header: "Close",
         cell: (info) => (
-          <span className={styles.priceCell}>{formatPrice(info.getValue() ?? 0)}</span>
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
         ),
       }),
+      columnHelper.accessor("openingPrice", {
+        header: "Open",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("high", {
+        header: "High",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("low", {
+        header: "Low",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("basePrice", {
+        header: "Base",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      // Change
       columnHelper.accessor("changeValue", {
-        header: "Change",
+        header: "Chg",
         cell: (info) => {
           const value = info.getValue() ?? 0;
           const className = value > 0 ? styles.positive : value < 0 ? styles.negative : "";
           return (
-            <span className={`${styles.changeCell} ${className}`}>
+            <span className={`${styles.numericCell} ${className}`}>
               {value > 0 ? "+" : ""}{formatPrice(value)}
             </span>
           );
         },
       }),
       columnHelper.accessor("change", {
-        header: "%",
+        header: "Chg%",
         cell: (info) => {
           const value = info.getValue() ?? 0;
           const className = value > 0 ? styles.positive : value < 0 ? styles.negative : "";
           return (
-            <span className={`${styles.changeCell} ${className}`}>
+            <span className={`${styles.numericCell} ${className}`}>
               {formatPercent(value)}
             </span>
           );
         },
       }),
+      // Volume & Turnover
       columnHelper.accessor("volume", {
         header: "Volume",
         cell: (info) => (
-          <span className={styles.volumeCell}>{formatVolume(Number(info.getValue() ?? 0))}</span>
+          <span className={styles.numericCell}>{formatVolume(Number(info.getValue() ?? 0))}</span>
         ),
+      }),
+      columnHelper.accessor("turnover", {
+        header: "Turnover",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatVolume(Number(info.getValue() ?? 0))}</span>
+        ),
+      }),
+      columnHelper.accessor("turnover10", {
+        header: "Turn10",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatVolume(Number(info.getValue() ?? 0))}</span>
+        ),
+      }),
+      // Market data
+      columnHelper.accessor("marketCap", {
+        header: "Mkt Cap",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatVolume(Number(info.getValue() ?? 0))}</span>
+        ),
+      }),
+      columnHelper.accessor("listedCapital", {
+        header: "Listed Cap",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatVolume(Number(info.getValue() ?? 0))}</span>
+        ),
+      }),
+      columnHelper.accessor("minContPhaseAmount", {
+        header: "Min Cont",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatVolume(Number(info.getValue() ?? 0))}</span>
+        ),
+      }),
+      // Technical indicators - Momentum
+      columnHelper.accessor("rsi14", {
+        header: "RSI14",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("mfi14", {
+        header: "MFI14",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("cci20", {
+        header: "CCI20",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      // MACD
+      columnHelper.accessor("macd", {
+        header: "MACD",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("macdSignal", {
+        header: "MACD Sig",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("macdHist", {
+        header: "MACD Hist",
+        cell: (info) => {
+          const value = info.getValue();
+          const className = value !== null ? (value > 0 ? styles.positive : value < 0 ? styles.negative : "") : "";
+          return (
+            <span className={`${styles.numericCell} ${className}`}>{formatNumber(value)}</span>
+          );
+        },
+      }),
+      // Moving averages
+      columnHelper.accessor("sma20", {
+        header: "SMA20",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("sma50", {
+        header: "SMA50",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("sma200", {
+        header: "SMA200",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      // Bollinger bands
+      columnHelper.accessor("upperBollingerBand20", {
+        header: "BB Upper",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("lowerBollingerBand20", {
+        header: "BB Lower",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      columnHelper.accessor("stddev20", {
+        header: "StdDev20",
+        cell: (info) => (
+          <span className={styles.numericCell}>{formatNumber(info.getValue())}</span>
+        ),
+      }),
+      // Date
+      columnHelper.accessor("tradeDate", {
+        header: "Date",
+        cell: (info) => <span className={styles.textCell}>{info.getValue()}</span>,
       }),
     ],
     []
@@ -294,43 +450,45 @@ function TaseAppInner({
       {!marketData ? (
         <div className={styles.loading}>Waiting for data...</div>
       ) : (
-        <table className={styles.table}>
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    onClick={header.column.getToggleSortingHandler()}
-                    style={{ cursor: "pointer" }}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                    {{
-                      asc: " ▲",
-                      desc: " ▼",
-                    }[header.column.getIsSorted() as string] ?? ""}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className={styles.tableContainer}>
+          <table className={styles.table}>
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      onClick={header.column.getToggleSortingHandler()}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                      {{
+                        asc: " ▲",
+                        desc: " ▼",
+                      }[header.column.getIsSorted() as string] ?? ""}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div className={styles.tableInfo}>

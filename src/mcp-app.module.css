@@ -1,8 +1,14 @@
 .main {
   width: 100%;
-  max-width: 900px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 1rem;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  margin: 0 -1rem;
+  padding: 0 1rem;
 }
 
 .header {
@@ -96,9 +102,15 @@
 
 .table th,
 .table td {
-  padding: 0.75rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   text-align: left;
   border-bottom: 1px solid var(--color-border-primary, #e5e5e5);
+  white-space: nowrap;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
 }
 
 .table th {
@@ -145,6 +157,14 @@
 .volumeCell {
   text-align: right;
   color: var(--color-text-secondary, #666);
+}
+
+.numericCell {
+  text-align: right;
+}
+
+.textCell {
+  white-space: nowrap;
 }
 
 .loading {
