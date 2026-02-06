@@ -3,11 +3,13 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   getPaginationRowModel,
+  getFilteredRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
   type PaginationState,
   type VisibilityState,
+  type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { useState, useRef, useEffect } from "react";
 import styles from "./PaginatedTable.module.css";
@@ -30,6 +32,9 @@ export function PaginatedTable<T>({
     pageSize: initialPageSize,
   });
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const columnSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -47,13 +52,16 @@ export function PaginatedTable<T>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, pagination, columnVisibility },
+    state: { sorting, pagination, columnVisibility, columnFilters, globalFilter },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
   });
 
   const pageCount = table.getPageCount();
@@ -61,10 +69,48 @@ export function PaginatedTable<T>({
 
   const visibleCount = table.getVisibleLeafColumns().length;
   const totalCount = table.getAllLeafColumns().length;
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const hasActiveFilters = columnFilters.length > 0 || globalFilter !== "";
+
+  const clearAllFilters = () => {
+    setColumnFilters([]);
+    setGlobalFilter("");
+  };
 
   return (
     <div className={styles.tableWrapper}>
       <div className={styles.toolbar}>
+        <div className={styles.searchBox}>
+          <input
+            type="text"
+            placeholder="Search all columns..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className={styles.searchInput}
+          />
+          {globalFilter && (
+            <button
+              className={styles.clearButton}
+              onClick={() => setGlobalFilter("")}
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        <button
+          className={`${styles.filterToggle} ${showFilters ? styles.active : ""}`}
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          Filters {hasActiveFilters && `(${columnFilters.length})`}
+        </button>
+
+        {hasActiveFilters && (
+          <button className={styles.clearFiltersButton} onClick={clearAllFilters}>
+            Clear All
+          </button>
+        )}
+
         <div className={styles.columnSelector} ref={columnSelectorRef}>
           <button
             className={styles.columnSelectorButton}
@@ -126,6 +172,24 @@ export function PaginatedTable<T>({
                 ))}
               </tr>
             ))}
+            {showFilters && (
+              <tr className={styles.filterRow}>
+                {table.getHeaderGroups()[0]?.headers.map((header) => (
+                  <th key={header.id} className={styles.filterCell}>
+                    {header.column.getCanFilter() ? (
+                      <input
+                        type="text"
+                        value={(header.column.getFilterValue() as string) ?? ""}
+                        onChange={(e) => header.column.setFilterValue(e.target.value)}
+                        placeholder={`Filter...`}
+                        className={styles.filterInput}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : null}
+                  </th>
+                ))}
+              </tr>
+            )}
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
@@ -143,8 +207,9 @@ export function PaginatedTable<T>({
 
       <div className={styles.pagination}>
         <div className={styles.pageInfo}>
-          Showing {table.getRowModel().rows.length} of {data.length} rows
-          {pageCount > 1 && ` (Page ${currentPage} of ${pageCount})`}
+          Showing {table.getRowModel().rows.length} of {filteredRowCount}
+          {filteredRowCount !== data.length && ` (${data.length} total)`} rows
+          {pageCount > 1 && ` · Page ${currentPage} of ${pageCount}`}
         </div>
 
         <div className={styles.pageControls}>
