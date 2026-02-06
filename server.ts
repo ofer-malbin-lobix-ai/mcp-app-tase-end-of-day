@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
 // API base URL
@@ -17,9 +18,11 @@ const getTaseDataSchema = {
 };
 
 // Works both from source (server.ts) and compiled (dist/server.js)
-const DIST_DIR = import.meta.filename.endsWith(".ts")
-  ? path.join(import.meta.dirname, "dist")
-  : import.meta.dirname;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DIST_DIR = __filename.endsWith(".ts")
+  ? path.join(__dirname, "dist")
+  : __dirname;
 
 // TASE end of day data structure (matches Prisma schema exactly)
 interface StockData {
