@@ -367,7 +367,11 @@ function TaseAppInner({
       // Date
       columnHelper.accessor("tradeDate", {
         header: "Date",
-        cell: (info) => <span className={styles.textCell}>{info.getValue()}</span>,
+        cell: (info) => {
+          const value = info.getValue();
+          const dateOnly = value ? value.split("T")[0] : "—";
+          return <span className={styles.textCell}>{dateOnly}</span>;
+        },
       }),
     ],
     []
