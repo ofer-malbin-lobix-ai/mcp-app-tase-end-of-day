@@ -111,7 +111,7 @@ export function DataTable<T>({
     if (showColumnSelector) {
       columnSelectorTimeoutRef.current = setTimeout(() => {
         setShowColumnSelector(false);
-      }, 2000);
+      }, 3000);
     }
   };
 
