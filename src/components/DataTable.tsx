@@ -111,7 +111,7 @@ export function DataTable<T>({
     if (showColumnSelector) {
       columnSelectorTimeoutRef.current = setTimeout(() => {
         setShowColumnSelector(false);
-      }, 3000);
+      }, 2000);
     }
   };
 
@@ -236,7 +236,7 @@ export function DataTable<T>({
             Columns ({visibleCount}/{totalCount})
           </button>
           {showColumnSelector && (
-            <div className={styles.columnSelectorDropdown} onMouseMove={resetColumnSelectorTimeout}>
+            <div className={styles.columnSelectorDropdown} onMouseMove={resetColumnSelectorTimeout} onMouseLeave={() => setShowColumnSelector(false)}>
               <div className={styles.columnSelectorHeader}>
                 <label className={styles.columnCheckbox}>
                   <input
