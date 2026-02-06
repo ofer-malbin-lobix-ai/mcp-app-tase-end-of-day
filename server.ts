@@ -13,8 +13,6 @@ const TASE_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub
 const getTaseDataSchema = {
   marketType: z.enum(["STOCK", "BONDS"]).optional().describe("Market type filter (STOCK or BONDS)"),
   tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format (default: today)"),
-  sortBy: z.enum(["symbol", "change", "volume", "closingPrice"]).optional().describe("Sort the data by this field"),
-  sortOrder: z.enum(["asc", "desc"]).optional().describe("Sort order"),
 };
 
 // Works both from source (server.ts) and compiled (dist/server.js)
@@ -121,20 +119,8 @@ export function createServer(): McpServer {
     async (args): Promise<CallToolResult> => {
       const marketType = args.marketType;
       const tradeDate = args.tradeDate;
-      const sortBy = args.sortBy ?? "symbol";
-      const sortOrder = args.sortOrder ?? "asc";
 
       const { rows: data, tradeDate: actualTradeDate } = await fetchTaseData(marketType, tradeDate);
-
-      // Sort data
-      data.sort((a, b) => {
-        const aVal = a[sortBy as keyof StockData];
-        const bVal = b[sortBy as keyof StockData];
-        const comparison = typeof aVal === "string"
-          ? aVal.localeCompare(bVal as string)
-          : (aVal as number) - (bVal as number);
-        return sortOrder === "desc" ? -comparison : comparison;
-      });
 
       const timestamp = actualTradeDate || new Date().toISOString();
 
