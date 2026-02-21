@@ -114,10 +114,21 @@ interface SubscriptionInnerProps {
   app: NonNullable<ReturnType<typeof useApp>["app"]>;
 }
 
+function isValidSubscribeUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname !== "localhost" && !parsed.hostname.startsWith("127.");
+  } catch {
+    return false;
+  }
+}
+
 function SubscriptionInner({ data, hostContext, app }: SubscriptionInnerProps) {
   const [displayMode, setDisplayMode] = useState<"inline" | "fullscreen">("inline");
   const [copied, setCopied] = useState(false);
 
+  const connectedUrl = isValidSubscribeUrl(data?.subscribeUrl) ? data!.subscribeUrl : null;
   const isFullscreenAvailable = hostContext?.availableDisplayModes?.includes("fullscreen") ?? false;
 
   const toggleFullscreen = useCallback(async () => {
@@ -175,45 +186,38 @@ function SubscriptionInner({ data, hostContext, app }: SubscriptionInnerProps) {
         ))}
       </div>
 
-      <div className={styles.cta}>
-        {data?.subscribeUrl ? (
-          <>
-            <button
-              className={styles.subscribeButton}
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(data.subscribeUrl);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                } catch {
-                  // Fallback: select the URL text
-                  const el = document.getElementById("subscribe-url");
-                  if (el) {
-                    const range = document.createRange();
-                    range.selectNodeContents(el);
-                    const sel = window.getSelection();
-                    sel?.removeAllRanges();
-                    sel?.addRange(range);
-                  }
+      {connectedUrl ? (
+        <div className={styles.cta}>
+          <button
+            className={styles.subscribeButton}
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(connectedUrl);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              } catch {
+                const el = document.getElementById("subscribe-url");
+                if (el) {
+                  const range = document.createRange();
+                  range.selectNodeContents(el);
+                  const sel = window.getSelection();
+                  sel?.removeAllRanges();
+                  sel?.addRange(range);
                 }
-              }}
-            >
-              {copied ? "Copied!" : "Copy Subscribe Link"}
-            </button>
-            <div className={styles.urlBox} id="subscribe-url">
-              {data.subscribeUrl}
-            </div>
-          </>
-        ) : (
-          <span className={styles.subscribeButton} style={{ opacity: 0.5, pointerEvents: "none" }}>
-            Subscribe Now
-          </span>
-        )}
-        <span className={styles.pricing}>Plans start at \u20AA35/month</span>
-      </div>
-
-      {!data && (
-        <div className={styles.waiting}>Waiting for subscription info...</div>
+              }
+            }}
+          >
+            {copied ? "Copied!" : "Copy Subscribe Link"}
+          </button>
+          <div className={styles.urlBox} id="subscribe-url">
+            {connectedUrl}
+          </div>
+          <span className={styles.pricing}>Plans start at \u20AA35/month</span>
+        </div>
+      ) : (
+        <div className={styles.notConnected}>
+          <p>Connect to the TASE Data Hub server to subscribe and access all tools.</p>
+        </div>
       )}
     </main>
   );
