@@ -49,13 +49,8 @@ export function createSubscriptionRouter(): Router {
       const htmlPath = path.join(HTML_DIR, 'subscribe.html');
       let html = await fs.readFile(htmlPath, 'utf-8');
 
-      // Inject Clerk publishable key for browser-side auth
-      const clerkPk = process.env.CLERK_PUBLISHABLE_KEY ?? '';
-      html = html.replace('data-clerk-publishable-key=""', `data-clerk-publishable-key="${clerkPk}"`);
-      html = html.replace('</head>', `<script>window.CLERK_PUBLISHABLE_KEY = "${clerkPk}";</script></head>`);
-
       if (!userId) {
-        // No valid token or Clerk session — serve the page with Clerk JS for sign-in
+        // No valid token or Clerk session — serve page without status
         res.setHeader('Content-Type', 'text/html');
         res.send(html);
         return;
