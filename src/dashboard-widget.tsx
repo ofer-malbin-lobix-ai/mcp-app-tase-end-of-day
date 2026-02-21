@@ -77,20 +77,6 @@ function numChange(r: StockRow): number {
   return Number(r.change ?? 0);
 }
 
-function getTopGainers(rows: StockRow[], n = 5): StockRow[] {
-  return rows
-    .filter((r) => r.change != null)
-    .sort((a, b) => numChange(b) - numChange(a))
-    .slice(0, n);
-}
-
-function getTopLosers(rows: StockRow[], n = 5): StockRow[] {
-  return rows
-    .filter((r) => r.change != null)
-    .sort((a, b) => numChange(a) - numChange(b))
-    .slice(0, n);
-}
-
 function avgChange(rows: StockRow[]): number {
   const valid = rows.filter((r) => r.change != null);
   if (valid.length === 0) return 0;
