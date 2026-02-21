@@ -422,8 +422,28 @@ function UptrendCard({ uptrend, error }: { uptrend: UptrendData | null; error: s
       {!uptrend && !error && <div className={styles.skeleton} />}
       {uptrend && (
         <>
-          <div className={styles.uptrendValue}>{uptrend.count}</div>
-          <div className={styles.uptrendLabel}>symbols in uptrend</div>
+          <div className={styles.spiritRow}>
+            <div className={styles.uptrendValue}>{uptrend.count}</div>
+            <div className={styles.uptrendLabel}>symbols in uptrend</div>
+          </div>
+          {uptrend.items.length > 0 && (
+            <table className={styles.miniTable}>
+              <thead>
+                <tr><th>Symbol</th><th>EZ %</th></tr>
+              </thead>
+              <tbody>
+                {uptrend.items
+                  .sort((a, b) => a.ez - b.ez)
+                  .slice(0, 5)
+                  .map((item) => (
+                    <tr key={item.symbol}>
+                      <td>{item.symbol}</td>
+                      <td className={styles.positive}>{item.ez.toFixed(2)}%</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          )}
         </>
       )}
     </div>
