@@ -382,6 +382,13 @@
       document.getElementById('loading').style.display = 'block';
 
       try {
+        // Use server-injected status if available (works without Clerk session)
+        if (window.INJECTED_STATUS) {
+          currentStatus = window.INJECTED_STATUS;
+          updateUI();
+          return;
+        }
+
         // If we have a token, skip status check and show subscribe form
         if (token) {
           currentStatus = { hasSubscription: false };

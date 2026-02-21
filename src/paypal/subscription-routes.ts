@@ -63,10 +63,30 @@ export function createSubscriptionRouter(): Router {
     try {
       const htmlPath = path.join(HTML_DIR, 'subscribe.html');
       let html = await fs.readFile(htmlPath, 'utf-8');
+
       // Inject token into the page so it can be used for API calls
       const token = req.query.token as string;
       if (token) {
         html = html.replace('</head>', `<script>window.SUBSCRIBE_TOKEN = "${token}";</script></head>`);
+      }
+
+      // Inject subscription status server-side so the page doesn't need a separate fetch
+      try {
+        const user = await clerkClient.users.getUser(userId);
+        const metadata = user.publicMetadata as Partial<SubscriptionMetadata>;
+        const status = {
+          hasSubscription: !!metadata.paypal_subscription_id,
+          plan: metadata.plan ?? null,
+          status: metadata.subscription_status ?? null,
+          expiresAt: metadata.expires_at ?? null,
+          plans: {
+            monthly: { price: PLANS.monthly.price, name: PLANS.monthly.name },
+            yearly: { price: PLANS.yearly.price, name: PLANS.yearly.name },
+          },
+        };
+        html = html.replace('</head>', `<script>window.INJECTED_STATUS = ${JSON.stringify(status)};</script></head>`);
+      } catch (e) {
+        console.error('Error fetching user status for injection:', e);
       }
 
       res.setHeader('Content-Type', 'text/html');
