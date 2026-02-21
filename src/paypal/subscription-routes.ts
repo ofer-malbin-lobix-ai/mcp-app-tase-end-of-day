@@ -45,24 +45,21 @@ export function createSubscriptionRouter(): Router {
   router.get('/subscribe', async (req: Request, res: Response) => {
     const userId = resolveUserId(req);
 
-    if (!userId) {
-      // No valid token or Clerk session — serve the page anyway.
-      // The subscribe.html page will detect no session and show a sign-in prompt.
-      try {
-        const htmlPath = path.join(HTML_DIR, 'subscribe.html');
-        const html = await fs.readFile(htmlPath, 'utf-8');
-        res.setHeader('Content-Type', 'text/html');
-        res.send(html);
-      } catch (error) {
-        console.error('Error serving subscribe page:', error);
-        res.status(500).send('Error loading subscription page');
-      }
-      return;
-    }
-
     try {
       const htmlPath = path.join(HTML_DIR, 'subscribe.html');
       let html = await fs.readFile(htmlPath, 'utf-8');
+
+      // Inject Clerk publishable key for browser-side auth
+      const clerkPk = process.env.CLERK_PUBLISHABLE_KEY ?? '';
+      html = html.replace('data-clerk-publishable-key=""', `data-clerk-publishable-key="${clerkPk}"`);
+      html = html.replace('</head>', `<script>window.CLERK_PUBLISHABLE_KEY = "${clerkPk}";</script></head>`);
+
+      if (!userId) {
+        // No valid token or Clerk session — serve the page with Clerk JS for sign-in
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+        return;
+      }
 
       // Inject token into the page so it can be used for API calls
       const token = req.query.token as string;
