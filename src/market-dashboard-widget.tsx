@@ -7,7 +7,7 @@ import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import styles from "./dashboard-widget.module.css";
+import styles from "./market-dashboard-widget.module.css";
 
 // ---------- Types ----------
 

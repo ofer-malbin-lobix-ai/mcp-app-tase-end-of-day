@@ -7,7 +7,7 @@ import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import styles from "./subscription-widget.module.css";
+import styles from "./tase-end-of-day-landing-widget.module.css";
 
 interface SubscriptionData {
   subscribeUrl: string;
@@ -171,8 +171,9 @@ function SubscriptionInner({ data, hostContext, app }: SubscriptionInnerProps) {
       </div>
 
       <div className={styles.header}>
-        <h1 className={styles.title}>TASE Data Hub</h1>
-        <p className={styles.subtitle}>Access Tel Aviv Stock Exchange market data</p>
+        <h1 className={styles.title}>Tel Aviv Stock Exchange</h1>
+        <h2 className={styles.title2}>End-of-Day Data</h2>
+        <p className={styles.subtitle}>End-of-Day Data Analysis, Using AI</p>
       </div>
 
       <div className={styles.featuresGrid}>

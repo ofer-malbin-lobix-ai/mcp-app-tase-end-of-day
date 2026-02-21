@@ -116,7 +116,7 @@ export async function startStreamableHTTPServer(
           ],
           _meta: {
             ui: {
-              resourceUri: "ui://tase-end-of-day/subscription-widget-v5.html",
+              resourceUri: "ui://tase-end-of-day/tase-end-of-day-landing-widget-v6.html",
             },
           },
         },

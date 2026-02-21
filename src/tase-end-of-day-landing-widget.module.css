@@ -61,6 +61,13 @@
   background-clip: text;
 }
 
+.title2 {
+  font-size: var(--font-heading-lg-size, 1.5rem);
+  font-weight: var(--font-weight-semibold, 600);
+  margin: 0;
+  color: var(--color-text-primary, #e2e8f0);
+}
+
 .subtitle {
   font-size: var(--font-text-base-size, 1rem);
   color: var(--color-text-secondary, #94a3b8);

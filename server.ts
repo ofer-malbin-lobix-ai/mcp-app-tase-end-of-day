@@ -399,13 +399,13 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
   });
 
   // Two-part registration: tool + resource, tied together by the resource URI.
-  const endOfDayResourceUri = "ui://tase-end-of-day/end-of-day-widget-v5.html";
-  const marketSpiritResourceUri = "ui://tase-end-of-day/market-spirit-widget-v5.html";
-  const uptrendSymbolsResourceUri = "ui://tase-end-of-day/uptrend-symbols-widget-v5.html";
-  const endOfDaySymbolsResourceUri = "ui://tase-end-of-day/end-of-day-symbols-widget-v5.html";
-  const candlestickResourceUri = "ui://tase-end-of-day/symbol-candlestick-widget-v5.html";
-  const dashboardResourceUri = "ui://tase-end-of-day/dashboard-widget-v5.html";
-  const subscriptionResourceUri = "ui://tase-end-of-day/subscription-widget-v5.html";
+  const endOfDayResourceUri = "ui://tase-end-of-day/end-of-day-widget-v6.html";
+  const marketSpiritResourceUri = "ui://tase-end-of-day/market-spirit-widget-v6.html";
+  const uptrendSymbolsResourceUri = "ui://tase-end-of-day/uptrend-symbols-widget-v6.html";
+  const endOfDaySymbolsResourceUri = "ui://tase-end-of-day/end-of-day-symbols-widget-v6.html";
+  const candlestickResourceUri = "ui://tase-end-of-day/symbol-candlestick-widget-v6.html";
+  const dashboardResourceUri = "ui://tase-end-of-day/market-dashboard-widget-v6.html";
+  const subscriptionResourceUri = "ui://tase-end-of-day/tase-end-of-day-landing-widget-v6.html";
 
   // Data-only tool: Get TASE end of day data (no UI, callable by both model and app)
   registerAppTool(server,
@@ -588,7 +588,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
 
   // UI tool: Show Market Dashboard portal
   registerAppTool(server,
-    "show-dashboard-widget",
+    "show-market-dashboard-widget",
     {
       title: "Show Market Dashboard",
       description: "Displays a single-page market overview combining Market Spirit, end-of-day stats (gainers/losers), and uptrend symbols count.",
@@ -621,7 +621,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
 
   // UI tool: Show Subscription landing page
   registerAppTool(server,
-    "show-subscription-widget",
+    "show-tase-end-of-day-landing-widget",
     {
       title: "Show Subscription",
       description: "Displays the TASE Data Hub subscription landing page with available tools and a subscribe button.",
@@ -714,7 +714,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
     dashboardResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(path.join(DIST_DIR, "dashboard-widget.html"), "utf-8");
+      const html = await fs.readFile(path.join(DIST_DIR, "market-dashboard-widget.html"), "utf-8");
       return {
         contents: [{ uri: dashboardResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
       };
@@ -727,7 +727,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
     subscriptionResourceUri,
     { mimeType: RESOURCE_MIME_TYPE, _meta: { ui: { permissions: { clipboardWrite: {} } } } },
     async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(path.join(DIST_DIR, "subscription-widget.html"), "utf-8");
+      const html = await fs.readFile(path.join(DIST_DIR, "tase-end-of-day-landing-widget.html"), "utf-8");
       return {
         contents: [{ uri: subscriptionResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
       };
