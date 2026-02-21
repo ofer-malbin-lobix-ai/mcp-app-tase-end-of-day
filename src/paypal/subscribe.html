@@ -391,13 +391,10 @@
 
         const response = await fetch('/api/subscription/status');
         if (!response.ok) {
-          if (response.status === 401) {
-            // No session and no token - show generic subscribe state
-            currentStatus = { hasSubscription: false };
-            updateUI();
-            return;
-          }
-          throw new Error('Failed to load status');
+          // No session — show generic subscribe form
+          currentStatus = { hasSubscription: false };
+          updateUI();
+          return;
         }
 
         currentStatus = await response.json();
