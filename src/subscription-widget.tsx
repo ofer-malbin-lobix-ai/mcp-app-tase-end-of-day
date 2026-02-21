@@ -191,26 +191,35 @@ function SubscriptionInner({ data, hostContext, app }: SubscriptionInnerProps) {
             className={styles.subscribeButton}
             onClick={async () => {
               try {
-                await navigator.clipboard.writeText(connectedUrl);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
+                const result = await app.openLink({ url: connectedUrl });
+                if (result?.isError) {
+                  // Host denied — fall back to clipboard copy
+                  await navigator.clipboard.writeText(connectedUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }
               } catch {
-                const el = document.getElementById("subscribe-url");
-                if (el) {
-                  const range = document.createRange();
-                  range.selectNodeContents(el);
-                  const sel = window.getSelection();
-                  sel?.removeAllRanges();
-                  sel?.addRange(range);
+                // openLink not supported — fall back to clipboard copy
+                try {
+                  await navigator.clipboard.writeText(connectedUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch {
+                  // Last resort: select the URL text
+                  const el = document.getElementById("subscribe-url");
+                  if (el) {
+                    const range = document.createRange();
+                    range.selectNodeContents(el);
+                    const sel = window.getSelection();
+                    sel?.removeAllRanges();
+                    sel?.addRange(range);
+                  }
                 }
               }
             }}
           >
-            {copied ? "Copied!" : "Copy Subscribe Link"}
+            {copied ? "Copied!" : data?.needsSubscription ? "Subscribe Now" : "Subscription"}
           </button>
-          <div className={styles.urlBox} id="subscribe-url">
-            {connectedUrl}
-          </div>
           <span className={styles.pricing}>Plans start at \u20AA35/month</span>
         </div>
       ) : (
