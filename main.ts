@@ -46,6 +46,12 @@ export async function startStreamableHTTPServer(
     res.status(200).json({ status: "ok" });
   });
 
+  // OAuth metadata endpoints (public, before Clerk middleware)
+  const protectedResourceHandler = protectedResourceHandlerClerk({ scopes_supported: ["email", "profile"] });
+  app.get("/.well-known/oauth-protected-resource", protectedResourceHandler);
+  app.get("/.well-known/oauth-protected-resource/mcp", protectedResourceHandler);
+  app.get("/.well-known/oauth-authorization-server", authServerMetadataHandlerClerk);
+
   // Apply Clerk middleware for all requests
   app.use(clerkMiddleware());
 
@@ -139,18 +145,6 @@ export async function startStreamableHTTPServer(
       }
     }
   };
-
-  // OAuth Protected Resource Metadata (RFC 9728)
-  app.get(
-    "/.well-known/oauth-protected-resource",
-    protectedResourceHandlerClerk({ scopes_supported: ["email", "profile"] }),
-  );
-
-  // OAuth Authorization Server Metadata
-  app.get(
-    "/.well-known/oauth-authorization-server",
-    authServerMetadataHandlerClerk,
-  );
 
   // Protected MCP endpoint with subscription check
   app.all("/mcp", mcpAuthClerk, requireSubscription, mcpHandler);
