@@ -114,11 +114,10 @@ interface SubscriptionInnerProps {
   app: NonNullable<ReturnType<typeof useApp>["app"]>;
 }
 
-function isValidSubscribeUrl(url: string | undefined): boolean {
+function hasToken(url: string | undefined): boolean {
   if (!url) return false;
   try {
-    const parsed = new URL(url);
-    return parsed.hostname !== "localhost" && !parsed.hostname.startsWith("127.");
+    return new URL(url).searchParams.has("token");
   } catch {
     return false;
   }
@@ -128,7 +127,7 @@ function SubscriptionInner({ data, hostContext, app }: SubscriptionInnerProps) {
   const [displayMode, setDisplayMode] = useState<"inline" | "fullscreen">("inline");
   const [copied, setCopied] = useState(false);
 
-  const connectedUrl = isValidSubscribeUrl(data?.subscribeUrl) ? data!.subscribeUrl : null;
+  const connectedUrl = hasToken(data?.subscribeUrl) ? data!.subscribeUrl : null;
   const isFullscreenAvailable = hostContext?.availableDisplayModes?.includes("fullscreen") ?? false;
 
   const toggleFullscreen = useCallback(async () => {
