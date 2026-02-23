@@ -3,6 +3,16 @@ import { subDays } from "date-fns";
 
 const LOOKBACK_DAYS = 450;
 
+interface EodRow {
+  symbol: string;
+  tradeDate: Date;
+  closingPrice: number | null;
+  high: number | null;
+  low: number | null;
+  volume: bigint | null;
+  turnover: bigint | null;
+}
+
 /* ---------------------------- Indicators ---------------------------- */
 
 function sma(values: (number | null)[], period: number): (number | null)[] {
@@ -276,7 +286,7 @@ async function getTradingIndicators({
   tradeDate: Date;
   fromDate: Date;
 }) {
-  const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
+  const rows: EodRow[] = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
     where: {
       symbol: symbol,
       tradeDate: { gte: fromDate, lte: tradeDate },
@@ -293,13 +303,13 @@ async function getTradingIndicators({
     },
   });
 
-  const close = rows.map((row) => row.closingPrice ?? null) as (number | null)[];
-  const highArr = rows.map((row) => row.high ?? null) as (number | null)[];
-  const lowArr = rows.map((row) => row.low ?? null) as (number | null)[];
-  const volumeArr = rows.map((row) =>
+  const close = rows.map((row: EodRow) => row.closingPrice ?? null) as (number | null)[];
+  const highArr = rows.map((row: EodRow) => row.high ?? null) as (number | null)[];
+  const lowArr = rows.map((row: EodRow) => row.low ?? null) as (number | null)[];
+  const volumeArr = rows.map((row: EodRow) =>
     row.volume == null ? null : Number(row.volume),
   ) as (number | null)[];
-  const turnoverArr = rows.map((row) =>
+  const turnoverArr = rows.map((row: EodRow) =>
     row.turnover == null ? null : Number(row.turnover),
   ) as (number | null)[];
 
@@ -368,7 +378,7 @@ export async function updateTradingDayIndicators({
     },
     select: { symbol: true },
   });
-  const symbols = rows.map((r) => r.symbol);
+  const symbols = rows.map((r: { symbol: string }) => r.symbol);
 
   console.error(`[indicators] Updating indicators for ${symbols.length} symbols on ${tradeDate} (${marketType})`);
 
