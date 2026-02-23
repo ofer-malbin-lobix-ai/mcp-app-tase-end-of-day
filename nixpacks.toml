@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["nodejs_22"]
+nixPkgs = ["nodejs_23"]
 
 [phases.install]
 cmds = ["npm install"]
@@ -8,7 +8,7 @@ cmds = ["npm install"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "node dist/main.js"
+cmd = "npx tsx dist/main.js"
 
 [variables]
 NODE_ENV = "production"
