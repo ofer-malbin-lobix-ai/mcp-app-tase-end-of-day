@@ -567,8 +567,7 @@ function SymbolsCandlestickApp() {
           <h1 className={styles.title}>Multi-Symbol Candlestick</h1>
           {eodData && (
             <div className={styles.subtitle}>
-              {sidebarSymbols.length} symbols
-              {eodData.dateFrom && ` · ${eodData.dateFrom}`}
+              {eodData.dateFrom && eodData.dateFrom}
               {eodData.dateTo && eodData.dateTo !== eodData.dateFrom && ` — ${eodData.dateTo}`}
             </div>
           )}
