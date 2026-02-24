@@ -22,7 +22,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --noEmit && cross-env INPUT=end-of-day-widget.html vite build && cross-env INPUT=market-spirit-widget.html vite build && cross-env INPUT=uptrend-symbols-widget.html vite build && cross-env INPUT=end-of-day-symbols-widget.html vite build && cross-env INPUT=symbol-candlestick-widget.html vite build && cross-env INPUT=symbols-candlestick-widget.html vite build && cross-env INPUT=market-dashboard-widget.html vite build && cross-env INPUT=tase-end-of-day-landing-widget.html vite build && tsc -p tsconfig.server.json",
+    "build": "tsc --noEmit && cross-env INPUT=end-of-day-widget.html vite build && cross-env INPUT=market-spirit-widget.html vite build && cross-env INPUT=uptrend-symbols-widget.html vite build && cross-env INPUT=end-of-day-symbols-widget.html vite build && cross-env INPUT=symbol-candlestick-widget.html vite build && cross-env INPUT=symbols-candlestick-widget.html vite build && cross-env INPUT=market-dashboard-widget.html vite build && cross-env INPUT=tase-end-of-day-landing-widget.html vite build",
     "build:dashboard": "cross-env INPUT=market-dashboard-widget.html vite build",
     "build:eod": "cross-env INPUT=end-of-day-widget.html vite build",
     "build:spirit": "cross-env INPUT=market-spirit-widget.html vite build",
