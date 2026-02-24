@@ -157,7 +157,7 @@ export function DataTable<T>({
   const columnsWithFilters = useMemo(() => {
     return columns.map((col) => {
       const colId = (col as { accessorKey?: string }).accessorKey ?? (col as { id?: string }).id;
-      if (colId && numericColumns.has(colId)) {
+      if (colId && numericColumns.has(colId) && !(col as { filterFn?: unknown }).filterFn) {
         return {
           ...col,
           filterFn: numberRangeFilter,

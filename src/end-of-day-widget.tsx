@@ -42,6 +42,9 @@ interface StockData {
   upperBollingerBand20: number | null;
   lowerBollingerBand20: number | null;
   ez: number | null;
+  companyName: string | null;
+  sector: string | null;
+  subSector: string | null;
 }
 
 interface EndOfDayData {
@@ -310,6 +313,21 @@ function EndOfDayAppInner({
         cell: (info) => (
           <span className={styles.symbolCell}>{info.getValue()}</span>
         ),
+      }),
+      columnHelper.accessor("companyName", {
+        header: "Company",
+        cell: (info) => <span className={styles.textCell}>{info.getValue() ?? "—"}</span>,
+        filterFn: "includesString",
+      }),
+      columnHelper.accessor("sector", {
+        header: "Sector",
+        cell: (info) => <span className={styles.textCell}>{info.getValue() ?? "—"}</span>,
+        filterFn: "includesString",
+      }),
+      columnHelper.accessor("subSector", {
+        header: "Sub-Sector",
+        cell: (info) => <span className={styles.textCell}>{info.getValue() ?? "—"}</span>,
+        filterFn: "includesString",
       }),
       columnHelper.accessor("marketType", {
         header: "Type",

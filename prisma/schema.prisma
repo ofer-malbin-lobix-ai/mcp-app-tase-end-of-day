@@ -31,6 +31,7 @@ model TaseSecuritiesEndOfDayTradingData {
   adjustmentCoefficient Float?
   symbol                String
   marketType            String?
+  taseSymbol            TaseSymbol? @relation(fields: [symbol], references: [symbol])
   // --- indicators ---
   rsi14                 Float?
   macd                  Float?
@@ -49,4 +50,17 @@ model TaseSecuritiesEndOfDayTradingData {
 
   @@unique([symbol, tradeDate], name: "unique_symbol_tradeDate")
   @@index([symbol, tradeDate], name: "index_symbol_tradeDate")
+}
+
+model TaseSymbol {
+  symbol             String   @id
+  securityId         Int      @unique
+  isin               String
+  securityName       String?
+  companySuperSector String?
+  companySector      String?
+  companySubSector   String?
+  companyName        String?
+  updatedAt          DateTime @updatedAt
+  tradingData        TaseSecuritiesEndOfDayTradingData[]
 }

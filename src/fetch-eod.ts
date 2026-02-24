@@ -1,7 +1,9 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import cron from "node-cron";
 import { prisma } from "./db.js";
 import { updateTradingDayIndicators } from "./indicators.js";
+import { fetchAndStoreSymbols } from "./fetch-symbols.js";
 
 const TASE_DATA_HUB_EOD_URL =
   "https://datawise.tase.co.il/v1/securities/trading/eod/seven-days/by-date";
@@ -102,6 +104,17 @@ async function fetchAndStoreEod(date: string): Promise<{ fetched: number; create
   return { fetched: items.length, created: result.count };
 }
 
+function getTodayDateIL(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+}
+
+async function runEodPipeline(date: string): Promise<{ fetched: number; created: number; updated: number; symbolsUpserted: number }> {
+  const eodResult = await fetchAndStoreEod(date);
+  const indicatorsResult = await updateTradingDayIndicators({ tradeDate: date, marketType: "STOCK" });
+  const symbolsResult = await fetchAndStoreSymbols(date);
+  return { ...eodResult, ...indicatorsResult, symbolsUpserted: symbolsResult.upserted };
+}
+
 /**
  * Creates an Express router with the /api/fetch-eod endpoint.
  * GET /api/fetch-eod?date=YYYY-MM-DD
@@ -112,13 +125,8 @@ export function createFetchEodRouter(): Router {
 
   router.get("/api/fetch-eod", async (req: Request, res: Response) => {
     try {
-      // Default to today in Israel time (Asia/Jerusalem)
-      const date =
-        (req.query.date as string) ??
-        new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
-
+      const date = (req.query.date as string) ?? getTodayDateIL();
       const result = await fetchAndStoreEod(date);
-
       res.json({ status: "ok", date, ...result });
     } catch (error) {
       console.error("[fetch-eod] Error:", error);
@@ -131,14 +139,9 @@ export function createFetchEodRouter(): Router {
 
   router.get("/api/run-eod-pipeline", async (req: Request, res: Response) => {
     try {
-      const date =
-        (req.query.date as string) ??
-        new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
-
-      const eodResult = await fetchAndStoreEod(date);
-      const indicatorsResult = await updateTradingDayIndicators({ tradeDate: date, marketType: "STOCK" });
-
-      res.json({ status: "ok", date, ...eodResult, ...indicatorsResult });
+      const date = (req.query.date as string) ?? getTodayDateIL();
+      const result = await runEodPipeline(date);
+      res.json({ status: "ok", date, ...result });
     } catch (error) {
       console.error("[run-eod-pipeline] Error:", error);
       res.status(500).json({
@@ -150,12 +153,8 @@ export function createFetchEodRouter(): Router {
 
   router.get("/api/update-indicators", async (req: Request, res: Response) => {
     try {
-      const date =
-        (req.query.date as string) ??
-        new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
-
+      const date = (req.query.date as string) ?? getTodayDateIL();
       const result = await updateTradingDayIndicators({ tradeDate: date, marketType: "STOCK" });
-
       res.json({ status: "ok", date, ...result });
     } catch (error) {
       console.error("[update-indicators] Error:", error);
@@ -165,6 +164,20 @@ export function createFetchEodRouter(): Router {
       });
     }
   });
+
+  // Cron: run EOD pipeline Mon-Fri at 20:30 Israel time
+  cron.schedule("30 20 * * 1-5", async () => {
+    const date = getTodayDateIL();
+    console.error(`[cron] Running EOD pipeline for ${date}`);
+    try {
+      const result = await runEodPipeline(date);
+      console.error(`[cron] Done: fetched=${result.fetched}, created=${result.created}, updated=${result.updated}, symbolsUpserted=${result.symbolsUpserted}`);
+    } catch (error) {
+      console.error("[cron] Error:", error);
+    }
+  }, { timezone: "Asia/Jerusalem" });
+
+  console.error("[cron] EOD pipeline scheduled: Mon-Fri at 20:30 Israel time");
 
   return router;
 }

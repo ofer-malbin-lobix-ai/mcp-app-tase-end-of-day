@@ -5,16 +5,35 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import type {
+  StockData,
+  EndOfDayResult,
+  MarketSpiritResponse,
+  UptrendSymbolsResponse,
+  EndOfDaySymbolsResponse,
+  CandlestickResponse,
+  TaseDataProviders,
+} from "./src/types.js";
 
-// API base URLs
-const END_OF_DAY_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/rows/market/date";
-const MARKET_SPIRIT_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/market/spirit";
-const UPTREND_SYMBOLS_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/symbols/uptrend/date";
-const END_OF_DAYS_SYMBOLS_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/rows/symbols/range";
-const END_OF_DAY_SYMBOLS_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/rows/symbols/date";
-const CANDLESTICK_API_URL = "https://www.professorai.app/api/mcp-endpoint/tase-data-hub/eod/charts/symbol/candlestick";
+// Re-export types for consumers
+export type {
+  StockData,
+  EndOfDayResult,
+  MarketSpiritResponse,
+  UptrendSymbolsResponse,
+  EndOfDaySymbolsResponse,
+  CandlestickResponse,
+  TaseDataProviders,
+};
 
-// Define the input schema using Zod
+// Works both from source (server.ts) and compiled (dist/server.js)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DIST_DIR = __filename.endsWith(".ts")
+  ? path.join(__dirname, "dist")
+  : __dirname;
+
+// Input schemas
 const getTaseDataSchema = {
   marketType: z.enum(["STOCK", "BOND", "TASE UP STOCK", "LOAN"]).optional().describe("Market type filter"),
   tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format. If not provided, returns the last available trading day."),
@@ -42,94 +61,6 @@ const getCandlestickSchema = {
   dateTo: z.string().optional().describe("End date in YYYY-MM-DD format"),
 };
 
-// Works both from source (server.ts) and compiled (dist/server.js)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DIST_DIR = __filename.endsWith(".ts")
-  ? path.join(__dirname, "dist")
-  : __dirname;
-
-// TASE end of day data structure (matches Prisma schema exactly)
-interface StockData {
-  tradeDate: string;
-  symbol: string;
-  change: number | null;              // percentage change
-  turnover: number | null;
-  closingPrice: number | null;
-  basePrice: number | null;
-  openingPrice: number | null;
-  high: number | null;
-  low: number | null;
-  changeValue: number | null;
-  volume: number | null;
-  marketCap: number | null;
-  minContPhaseAmount: number | null;
-  listedCapital: number | null;
-  marketType: string | null;
-  // Technical indicators
-  rsi14: number | null;
-  macd: number | null;
-  macdSignal: number | null;
-  macdHist: number | null;
-  cci20: number | null;
-  mfi14: number | null;
-  turnover10: number | null;
-  sma20: number | null;
-  sma50: number | null;
-  sma200: number | null;
-  stddev20: number | null;
-  upperBollingerBand20: number | null;
-  lowerBollingerBand20: number | null;
-  ez: number | null;
-}
-
-// API response structure
-interface ApiResponse {
-  tradeDate: string;
-  marketType: string | null;
-  count: number;
-  items: StockData[];
-}
-
-// Market Spirit response structure
-interface MarketSpiritResponse {
-  tradeDate: string;
-  marketType: string;
-  score: "Defense" | "Selective" | "Attack" | null;
-  adv: number | null;
-  adLine: number | null;
-}
-
-// Uptrend Symbols response structure
-interface UptrendSymbolItem {
-  symbol: string;
-  ez: number;
-}
-
-interface UptrendSymbolsResponse {
-  tradeDate: string;
-  marketType: string;
-  count: number;
-  items: UptrendSymbolItem[];
-}
-// Candlestick response structure
-interface CandlestickResponse {
-  symbol: string;
-  count: number;
-  dateFrom: string | null;
-  dateTo: string | null;
-  items: StockData[];
-}
-
-// End of Day Symbols response structure
-interface EndOfDaySymbolsResponse {
-  symbols: string[];
-  count: number;
-  dateFrom: string | null;
-  dateTo: string | null;
-  items: StockData[];
-}
-
 // Score descriptions for Market Spirit
 const SCORE_DESCRIPTIONS: Record<string, string> = {
   Defense: "Bearish market conditions - consider defensive positions",
@@ -137,10 +68,8 @@ const SCORE_DESCRIPTIONS: Record<string, string> = {
   Attack: "Bullish market conditions - favorable for aggressive positions",
 };
 
-/**
- * Format TASE end of day data for tool response
- */
-function formatTaseDataResult(data: { rows: StockData[]; tradeDate: string; marketType: string | null }): CallToolResult {
+// Format helpers
+function formatTaseDataResult(data: EndOfDayResult): CallToolResult {
   return {
     content: [
       {
@@ -156,9 +85,6 @@ function formatTaseDataResult(data: { rows: StockData[]; tradeDate: string; mark
   };
 }
 
-/**
- * Format Market Spirit data for tool response
- */
 function formatMarketSpiritResult(data: MarketSpiritResponse): CallToolResult {
   return {
     content: [
@@ -177,9 +103,6 @@ function formatMarketSpiritResult(data: MarketSpiritResponse): CallToolResult {
   };
 }
 
-/**
- * Format Uptrend Symbols data for tool response
- */
 function formatUptrendSymbolsResult(data: UptrendSymbolsResponse): CallToolResult {
   return {
     content: [
@@ -196,9 +119,6 @@ function formatUptrendSymbolsResult(data: UptrendSymbolsResponse): CallToolResul
   };
 }
 
-/**
- * Format End of Day Symbols data for tool response
- */
 function formatEndOfDaySymbolsResult(data: EndOfDaySymbolsResponse): CallToolResult {
   return {
     content: [
@@ -216,74 +136,6 @@ function formatEndOfDaySymbolsResult(data: EndOfDaySymbolsResponse): CallToolRes
   };
 }
 
-/**
- * Fetch End of Day Symbols data from the API
- */
-async function fetchEndOfDaySymbols(symbols?: string[], dateFrom?: string, dateTo?: string): Promise<EndOfDaySymbolsResponse> {
-  const params = new URLSearchParams();
-  if (symbols) {
-    for (const s of symbols) {
-      params.append("symbols[]", s);
-    }
-  }
-  if (dateFrom) params.set("dateFrom", dateFrom);
-  if (dateTo) params.set("dateTo", dateTo);
-
-  const url = params.toString() ? `${END_OF_DAYS_SYMBOLS_API_URL}?${params}` : END_OF_DAYS_SYMBOLS_API_URL;
-
-  console.error(`Fetching End of Day Symbols from: ${url}`);
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Accept": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-
-  const responseData = await response.json() as { payload: string };
-  const data = JSON.parse(responseData.payload) as EndOfDaySymbolsResponse;
-
-  return data;
-}
-
-/**
- * Fetch End of Day Symbols data by date (single date, for sidebar)
- */
-async function fetchEndOfDaySymbolsByDate(symbols: string[], tradeDate?: string): Promise<EndOfDaySymbolsResponse> {
-  const params = new URLSearchParams();
-  for (const s of symbols) {
-    params.append("symbols[]", s);
-  }
-  if (tradeDate) params.set("tradeDate", tradeDate);
-
-  const url = `${END_OF_DAY_SYMBOLS_API_URL}?${params}`;
-
-  console.error(`Fetching End of Day Symbols by date from: ${url}`);
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Accept": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-
-  const responseData = await response.json() as { payload: string };
-  const data = JSON.parse(responseData.payload) as EndOfDaySymbolsResponse;
-
-  return data;
-}
-
-/**
- * Format Candlestick data for tool response
- */
 function formatCandlestickResult(data: CandlestickResponse): CallToolResult {
   return {
     content: [
@@ -302,136 +154,19 @@ function formatCandlestickResult(data: CandlestickResponse): CallToolResult {
 }
 
 /**
- * Fetch Candlestick data from the API
+ * Creates a new MCP server instance.
+ * Requires a `providers` object for data fetching (use dbProviders from src/db-api.ts).
  */
-async function fetchCandlestick(symbol: string, dateFrom?: string, dateTo?: string): Promise<CandlestickResponse> {
-  const params = new URLSearchParams();
-  params.set("symbol", symbol);
-  if (dateFrom) params.set("dateFrom", dateFrom);
-  if (dateTo) params.set("dateTo", dateTo);
+export function createServer(options: { subscribeUrl?: string; providers: TaseDataProviders }): McpServer {
+  const { providers } = options;
 
-  const url = `${CANDLESTICK_API_URL}?${params}`;
-
-  console.error(`Fetching Candlestick from: ${url}`);
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Accept": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-
-  const responseData = await response.json() as { payload: string };
-  const data = JSON.parse(responseData.payload) as CandlestickResponse;
-
-  return data;
-}
-
-/**
- * Fetch TASE end of day data from the API
- */
-async function fetchEndOfDay(marketType?: string, tradeDate?: string): Promise<{ rows: StockData[]; tradeDate: string; marketType: string | null }> {
-  const params = new URLSearchParams();
-  if (marketType) params.set("marketType", marketType);
-  if (tradeDate) params.set("tradeDate", tradeDate);
-
-  const url = params.toString() ? `${END_OF_DAY_API_URL}?${params}` : END_OF_DAY_API_URL;
-
-  console.error(`Fetching TASE data from: ${url}`);
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Accept": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-
-  const responseData = await response.json() as { payload: string };
-  const data = JSON.parse(responseData.payload) as ApiResponse;
-
-  // Pass through API response items directly (StockData matches ApiRow)
-  const rows: StockData[] = data.items;
-
-  return { rows, tradeDate: data.tradeDate, marketType: data.marketType };
-}
-
-/**
- * Fetch Market Spirit data from the API
- */
-async function fetchMarketSpirit(marketType?: string, tradeDate?: string): Promise<MarketSpiritResponse> {
-  const params = new URLSearchParams();
-  if (marketType) params.set("marketType", marketType);
-  if (tradeDate) params.set("tradeDate", tradeDate);
-
-  const url = params.toString() ? `${MARKET_SPIRIT_API_URL}?${params}` : MARKET_SPIRIT_API_URL;
-
-  console.error(`Fetching Market Spirit from: ${url}`);
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Accept": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-
-  const responseData = await response.json() as { payload: string };
-  const data = JSON.parse(responseData.payload) as MarketSpiritResponse;
-
-  return data;
-}
-
-/**
- * Fetch Uptrend Symbols from the API
- */
-async function fetchUptrendSymbols(marketType?: string, tradeDate?: string): Promise<UptrendSymbolsResponse> {
-  const params = new URLSearchParams();
-  if (marketType) params.set("marketType", marketType);
-  if (tradeDate) params.set("tradeDate", tradeDate);
-
-  const url = params.toString() ? `${UPTREND_SYMBOLS_API_URL}?${params}` : UPTREND_SYMBOLS_API_URL;
-
-  console.error(`Fetching Uptrend Symbols from: ${url}`);
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Accept": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-  }
-
-  const responseData = await response.json() as { payload: string };
-  const data = JSON.parse(responseData.payload) as UptrendSymbolsResponse;
-
-  return data;
-}
-
-/**
- * Creates a new MCP server instance with tools and resources registered.
- */
-export function createServer(options?: { subscribeUrl?: string }): McpServer {
   const server = new McpServer({
     name: "TASE End of Day Server",
     version: "1.0.0",
   });
 
-  // Two-part registration: tool + resource, tied together by the resource URI.
-  const endOfDayResourceUri = "ui://tase-end-of-day/end-of-day-widget-v7.html";
+  // Resource URIs
+  const endOfDayResourceUri = "ui://tase-end-of-day/end-of-day-widget-v8.html";
   const marketSpiritResourceUri = "ui://tase-end-of-day/market-spirit-widget-v7.html";
   const uptrendSymbolsResourceUri = "ui://tase-end-of-day/uptrend-symbols-widget-v7.html";
   const endOfDaySymbolsResourceUri = "ui://tase-end-of-day/end-of-day-symbols-widget-v7.html";
@@ -440,7 +175,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
   const dashboardResourceUri = "ui://tase-end-of-day/market-dashboard-widget-v7.html";
   const subscriptionResourceUri = "ui://tase-end-of-day/tase-end-of-day-landing-widget-v7.html";
 
-  // Data-only tool: Get TASE end of day data (no UI, callable by both model and app)
+  // Data-only tool: Get TASE end of day data
   registerAppTool(server,
     "get-end-of-day-data",
     {
@@ -450,7 +185,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { visibility: ["model", "app"] } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchEndOfDay(args.marketType, args.tradeDate);
+      const data = await providers.fetchEndOfDay(args.marketType, args.tradeDate);
       return formatTaseDataResult(data);
     },
   );
@@ -465,8 +200,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { resourceUri: endOfDayResourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchEndOfDay(args.marketType, args.tradeDate);
-      // Send only summary to host — widget fetches full data via callServerTool
+      const data = await providers.fetchEndOfDay(args.marketType, args.tradeDate);
       return {
         content: [
           {
@@ -478,7 +212,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
     },
   );
 
-  // Data-only tool: Get Market Spirit data (no UI, callable by both model and app)
+  // Data-only tool: Get Market Spirit data
   registerAppTool(server,
     "get-market-spirit-data",
     {
@@ -488,7 +222,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { visibility: ["model", "app"] } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchMarketSpirit(args.marketType, args.tradeDate);
+      const data = await providers.fetchMarketSpirit(args.marketType, args.tradeDate);
       return formatMarketSpiritResult(data);
     },
   );
@@ -503,8 +237,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { resourceUri: marketSpiritResourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchMarketSpirit(args.marketType, args.tradeDate);
-      // Send only summary to host — widget fetches full data via callServerTool
+      const data = await providers.fetchMarketSpirit(args.marketType, args.tradeDate);
       return {
         content: [
           {
@@ -516,7 +249,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
     },
   );
 
-  // Data-only tool: Get Uptrend Symbols (no UI, callable by both model and app)
+  // Data-only tool: Get Uptrend Symbols
   registerAppTool(server,
     "get-uptrend-symbols-data",
     {
@@ -526,7 +259,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { visibility: ["model", "app"] } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchUptrendSymbols(args.marketType, args.tradeDate);
+      const data = await providers.fetchUptrendSymbols(args.marketType, args.tradeDate);
       return formatUptrendSymbolsResult(data);
     },
   );
@@ -541,8 +274,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { resourceUri: uptrendSymbolsResourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchUptrendSymbols(args.marketType, args.tradeDate);
-      // Send only summary to host — widget fetches full data via callServerTool
+      const data = await providers.fetchUptrendSymbols(args.marketType, args.tradeDate);
       return {
         content: [
           {
@@ -554,7 +286,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
     },
   );
 
-  // Data-only tool: Get End of Day Symbols data (no UI, callable by both model and app)
+  // Data-only tool: Get End of Day Symbols data
   registerAppTool(server,
     "get-end-of-day-symbols-data",
     {
@@ -564,7 +296,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { visibility: ["model", "app"] } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchEndOfDaySymbols(args.symbols, args.dateFrom, args.dateTo);
+      const data = await providers.fetchEndOfDaySymbols(args.symbols, args.dateFrom, args.dateTo);
       return formatEndOfDaySymbolsResult(data);
     },
   );
@@ -579,15 +311,12 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { resourceUri: endOfDaySymbolsResourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchEndOfDaySymbols(args.symbols, args.dateFrom, args.dateTo);
-      // Return full data in text content — widget parses in ontoolresult.
-      // Unlike end-of-day API, this API returns empty data with no symbols,
-      // so auto-fetch with {} won't work. Full data must come from the show tool.
+      const data = await providers.fetchEndOfDaySymbols(args.symbols, args.dateFrom, args.dateTo);
       return formatEndOfDaySymbolsResult(data);
     },
   );
 
-  // Data-only tool: Get Candlestick data (no UI, callable by both model and app)
+  // Data-only tool: Get Candlestick data
   registerAppTool(server,
     "get-symbol-candlestick-data",
     {
@@ -597,7 +326,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { visibility: ["model", "app"] } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchCandlestick(args.symbol, args.dateFrom, args.dateTo);
+      const data = await providers.fetchCandlestick(args.symbol, args.dateFrom, args.dateTo);
       return formatCandlestickResult(data);
     },
   );
@@ -612,9 +341,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { resourceUri: candlestickResourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      const data = await fetchCandlestick(args.symbol, args.dateFrom, args.dateTo);
-      // Return full data in text content — widget parses in ontoolresult.
-      // API requires symbol param, so auto-fetch with {} won't work.
+      const data = await providers.fetchCandlestick(args.symbol, args.dateFrom, args.dateTo);
       return formatCandlestickResult(data);
     },
   );
@@ -633,8 +360,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { resourceUri: symbolsCandlestickResourceUri } },
     },
     async (args): Promise<CallToolResult> => {
-      // Fetch sidebar data using /symbols/date endpoint (last trade date only)
-      const data = await fetchEndOfDaySymbolsByDate(args.symbols, args.dateTo);
+      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.dateTo);
       return {
         content: [
           {
@@ -652,7 +378,7 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
     },
   );
 
-  // UI tool: Show Market Dashboard portal
+  // UI tool: Show Market Dashboard
   registerAppTool(server,
     "show-market-dashboard-widget",
     {
@@ -663,9 +389,9 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
     },
     async (args): Promise<CallToolResult> => {
       const [spirit, eod, uptrend] = await Promise.allSettled([
-        fetchMarketSpirit(args.marketType, args.tradeDate),
-        fetchEndOfDay(args.marketType, args.tradeDate),
-        fetchUptrendSymbols(args.marketType, args.tradeDate),
+        providers.fetchMarketSpirit(args.marketType, args.tradeDate),
+        providers.fetchEndOfDay(args.marketType, args.tradeDate),
+        providers.fetchUptrendSymbols(args.marketType, args.tradeDate),
       ]);
       const parts: string[] = [];
       if (spirit.status === "fulfilled") parts.push(`Spirit: ${spirit.value.score ?? "Unknown"}`);
@@ -695,8 +421,6 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
       _meta: { ui: { resourceUri: subscriptionResourceUri } },
     },
     async (): Promise<CallToolResult> => {
-      // options.subscribeUrl includes token when running on the HTTP server (same secret).
-      // Fallback (stdio) omits the token — the /subscribe page handles Clerk sign-in.
       const subscribeUrl = options?.subscribeUrl ?? `${process.env.APP_URL ?? "http://localhost:3001"}/subscribe`;
       return {
         content: [
@@ -709,107 +433,76 @@ export function createServer(options?: { subscribeUrl?: string }): McpServer {
     },
   );
 
-  // Register the TASE data resource
+  // Register resources
   registerAppResource(server,
-    endOfDayResourceUri,
-    endOfDayResourceUri,
+    endOfDayResourceUri, endOfDayResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "end-of-day-widget.html"), "utf-8");
-      return {
-        contents: [{ uri: endOfDayResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
+      return { contents: [{ uri: endOfDayResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
-  // Register the Market Spirit resource
   registerAppResource(server,
-    marketSpiritResourceUri,
-    marketSpiritResourceUri,
+    marketSpiritResourceUri, marketSpiritResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "market-spirit-widget.html"), "utf-8");
-      return {
-        contents: [{ uri: marketSpiritResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
+      return { contents: [{ uri: marketSpiritResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
-  // Register the Uptrend Symbols resource
   registerAppResource(server,
-    uptrendSymbolsResourceUri,
-    uptrendSymbolsResourceUri,
+    uptrendSymbolsResourceUri, uptrendSymbolsResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "uptrend-symbols-widget.html"), "utf-8");
-      return {
-        contents: [{ uri: uptrendSymbolsResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
+      return { contents: [{ uri: uptrendSymbolsResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
-  // Register the End of Day Symbols resource
   registerAppResource(server,
-    endOfDaySymbolsResourceUri,
-    endOfDaySymbolsResourceUri,
+    endOfDaySymbolsResourceUri, endOfDaySymbolsResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "end-of-day-symbols-widget.html"), "utf-8");
-      return {
-        contents: [{ uri: endOfDaySymbolsResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
+      return { contents: [{ uri: endOfDaySymbolsResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
-  // Register the Candlestick resource
   registerAppResource(server,
-    candlestickResourceUri,
-    candlestickResourceUri,
+    candlestickResourceUri, candlestickResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "symbol-candlestick-widget.html"), "utf-8");
-      return {
-        contents: [{ uri: candlestickResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
+      return { contents: [{ uri: candlestickResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
-  // Register the Multi-Symbol Candlestick resource
   registerAppResource(server,
-    symbolsCandlestickResourceUri,
-    symbolsCandlestickResourceUri,
+    symbolsCandlestickResourceUri, symbolsCandlestickResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "symbols-candlestick-widget.html"), "utf-8");
-      return {
-        contents: [{ uri: symbolsCandlestickResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
+      return { contents: [{ uri: symbolsCandlestickResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
-  // Register the Dashboard resource
   registerAppResource(server,
-    dashboardResourceUri,
-    dashboardResourceUri,
+    dashboardResourceUri, dashboardResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "market-dashboard-widget.html"), "utf-8");
-      return {
-        contents: [{ uri: dashboardResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
+      return { contents: [{ uri: dashboardResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
-  // Register the Subscription resource
   registerAppResource(server,
-    subscriptionResourceUri,
-    subscriptionResourceUri,
+    subscriptionResourceUri, subscriptionResourceUri,
     { mimeType: RESOURCE_MIME_TYPE, _meta: { ui: { permissions: { clipboardWrite: {} } } } },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "tase-end-of-day-landing-widget.html"), "utf-8");
-      return {
-        contents: [{ uri: subscriptionResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
-      };
+      return { contents: [{ uri: subscriptionResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 

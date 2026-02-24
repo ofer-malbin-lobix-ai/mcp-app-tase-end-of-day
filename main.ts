@@ -18,17 +18,22 @@ import cors from "cors";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { createServer } from "./server.js";
+import type { TaseDataProviders } from "./src/types.js";
 import { createSubscriptionRouter } from "./src/paypal/subscription-routes.js";
 import { checkSubscription } from "./src/paypal/subscription-check.js";
 import { generateSubscribeToken } from "./src/paypal/subscribe-token.js";
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
 import { createFetchEodRouter } from "../src/fetch-eod.js";
+// @ts-ignore — imported from source at runtime (not compiled by tsc)
+import { createFetchSymbolsRouter } from "../src/fetch-symbols.js";
+// @ts-ignore — imported from source at runtime (not compiled by tsc)
+import { dbProviders } from "../src/db-api.js";
 
 /**
  * Starts an MCP server with Streamable HTTP transport in stateless mode.
  */
 export async function startStreamableHTTPServer(
-  createServer: (options?: { subscribeUrl?: string }) => McpServer,
+  createServer: (options: { subscribeUrl?: string; providers: TaseDataProviders }) => McpServer,
 ): Promise<void> {
   const port = parseInt(process.env.PORT ?? "3001", 10);
 
@@ -65,6 +70,9 @@ export async function startStreamableHTTPServer(
 
   // Mount fetch-eod route (backend API, no auth — callable by cron or direct URL)
   app.use(createFetchEodRouter());
+
+  // Mount fetch-symbols route (backend API, no auth — upserts TaseSymbol metadata)
+  app.use(createFetchSymbolsRouter());
 
   // Helper to extract userId from request (works with mcpAuthClerk)
   const resolveUserId = (req: Request): string | null => {
@@ -142,7 +150,7 @@ export async function startStreamableHTTPServer(
       const token = generateSubscribeToken(userId);
       subscribeUrl += `?token=${token}`;
     }
-    const server = createServer({ subscribeUrl });
+    const server = createServer({ subscribeUrl, providers: dbProviders });
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
     });
@@ -191,9 +199,9 @@ export async function startStreamableHTTPServer(
  * Starts an MCP server with stdio transport.
  */
 export async function startStdioServer(
-  createServer: () => McpServer,
+  createServer: (options: { providers: TaseDataProviders }) => McpServer,
 ): Promise<void> {
-  await createServer().connect(new StdioServerTransport());
+  await createServer({ providers: dbProviders }).connect(new StdioServerTransport());
 }
 
 async function main() {

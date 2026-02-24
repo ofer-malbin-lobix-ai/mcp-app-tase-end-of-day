@@ -1,0 +1,334 @@
+import { prisma } from "./db.js";
+import type {
+  StockData,
+  EndOfDayResult,
+  MarketSpiritResponse,
+  UptrendSymbolsResponse,
+  EndOfDaySymbolsResponse,
+  CandlestickResponse,
+  TaseDataProviders,
+} from "./types.js";
+
+// Fields to select for StockData (excludes isin, securityId, etc. not in StockData)
+const EOD_SELECT = {
+  tradeDate: true,
+  symbol: true,
+  change: true,
+  turnover: true,
+  closingPrice: true,
+  basePrice: true,
+  openingPrice: true,
+  high: true,
+  low: true,
+  changeValue: true,
+  volume: true,
+  marketCap: true,
+  minContPhaseAmount: true,
+  listedCapital: true,
+  marketType: true,
+  rsi14: true,
+  macd: true,
+  macdSignal: true,
+  macdHist: true,
+  cci20: true,
+  mfi14: true,
+  turnover10: true,
+  sma20: true,
+  sma50: true,
+  sma200: true,
+  stddev20: true,
+  upperBollingerBand20: true,
+  lowerBollingerBand20: true,
+  ez: true,
+} as const;
+
+type DbRow = {
+  tradeDate: Date;
+  symbol: string;
+  change: number | null;
+  turnover: bigint | null;
+  closingPrice: number | null;
+  basePrice: number | null;
+  openingPrice: number | null;
+  high: number | null;
+  low: number | null;
+  changeValue: number | null;
+  volume: bigint | null;
+  marketCap: bigint | null;
+  minContPhaseAmount: number | null;
+  listedCapital: bigint | null;
+  marketType: string | null;
+  rsi14: number | null;
+  macd: number | null;
+  macdSignal: number | null;
+  macdHist: number | null;
+  cci20: number | null;
+  mfi14: number | null;
+  turnover10: number | null;
+  sma20: number | null;
+  sma50: number | null;
+  sma200: number | null;
+  stddev20: number | null;
+  upperBollingerBand20: number | null;
+  lowerBollingerBand20: number | null;
+  ez: number | null;
+};
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0] as string;
+}
+
+function rowToStockData(row: DbRow): StockData {
+  return {
+    tradeDate: toDateStr(row.tradeDate),
+    symbol: row.symbol,
+    change: row.change,
+    turnover: row.turnover != null ? Number(row.turnover) : null,
+    closingPrice: row.closingPrice,
+    basePrice: row.basePrice,
+    openingPrice: row.openingPrice,
+    high: row.high,
+    low: row.low,
+    changeValue: row.changeValue,
+    volume: row.volume != null ? Number(row.volume) : null,
+    marketCap: row.marketCap != null ? Number(row.marketCap) : null,
+    minContPhaseAmount: row.minContPhaseAmount,
+    listedCapital: row.listedCapital != null ? Number(row.listedCapital) : null,
+    marketType: row.marketType,
+    rsi14: row.rsi14,
+    macd: row.macd,
+    macdSignal: row.macdSignal,
+    macdHist: row.macdHist,
+    cci20: row.cci20,
+    mfi14: row.mfi14,
+    turnover10: row.turnover10,
+    sma20: row.sma20,
+    sma50: row.sma50,
+    sma200: row.sma200,
+    stddev20: row.stddev20,
+    upperBollingerBand20: row.upperBollingerBand20,
+    lowerBollingerBand20: row.lowerBollingerBand20,
+    ez: row.ez,
+    companyName: null,
+    sector: null,
+    subSector: null,
+  };
+}
+
+async function getLastTradeDate(marketType: string, before?: Date): Promise<Date> {
+  const row = await prisma.taseSecuritiesEndOfDayTradingData.findFirst({
+    where: {
+      marketType,
+      ...(before ? { tradeDate: { lte: before } } : {}),
+    },
+    orderBy: { tradeDate: "desc" },
+    select: { tradeDate: true },
+  });
+  if (!row) throw new Error(`No trading data found for market type: ${marketType}`);
+  return row.tradeDate;
+}
+
+export async function fetchEndOfDay(marketType = "STOCK", tradeDate?: string): Promise<EndOfDayResult> {
+  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+
+  const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
+    where: { tradeDate: date, marketType },
+    select: {
+      ...EOD_SELECT,
+      taseSymbol: { select: { companyName: true, companySector: true, companySubSector: true } },
+    },
+    orderBy: { symbol: "asc" },
+  });
+
+  return {
+    rows: rows.map((row) => ({
+      ...rowToStockData(row),
+      companyName: row.taseSymbol?.companyName ?? null,
+      sector: row.taseSymbol?.companySector ?? null,
+      subSector: row.taseSymbol?.companySubSector ?? null,
+    })),
+    tradeDate: toDateStr(date),
+    marketType,
+  };
+}
+
+/**
+ * Market Spirit approximation from stored indicators.
+ *
+ * 6-point composite score (each = 1 point):
+ *   1. ADV > 0           — more advancing than declining stocks today
+ *   2. ADLine > 0        — cumulative advance-decline over last ~90 calendar days is positive
+ *   3. >50% ez > 0       — majority of stocks above their SMA20
+ *   4. >50% rsi14 > 50   — majority in bullish RSI territory
+ *   5. >50% macdHist > 0 — majority with positive MACD momentum
+ *   6. >50% cci20 > 0    — majority with positive CCI
+ *
+ * Score → Defense (0-2) | Selective (3-4) | Attack (5-6)
+ */
+export async function fetchMarketSpirit(marketType = "STOCK", tradeDate?: string): Promise<MarketSpiritResponse> {
+  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+  const tradeDateStr = toDateStr(date);
+
+  const stocks = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
+    where: { tradeDate: date, marketType },
+    select: { change: true, ez: true, rsi14: true, macdHist: true, cci20: true },
+  });
+
+  const total = stocks.length;
+  if (total === 0) {
+    return { tradeDate: tradeDateStr, marketType, score: null, adv: null, adLine: null };
+  }
+
+  const advancing = stocks.filter((s) => (s.change ?? 0) > 0).length;
+  const declining = stocks.filter((s) => (s.change ?? 0) < 0).length;
+  const adv = advancing - declining;
+
+  // Cumulative ADV over the last ~90 calendar days (≈ 20 trading days)
+  const fromDate = new Date(date);
+  fromDate.setDate(fromDate.getDate() - 90);
+
+  const advHistory = await prisma.$queryRaw<{ adv: number }[]>`
+    SELECT
+      SUM(CASE WHEN change > 0 THEN 1 ELSE 0 END)::int -
+      SUM(CASE WHEN change < 0 THEN 1 ELSE 0 END)::int AS adv
+    FROM "TaseSecuritiesEndOfDayTradingData"
+    WHERE "marketType" = ${marketType}
+      AND "tradeDate" BETWEEN ${fromDate} AND ${date}
+    GROUP BY "tradeDate"
+    ORDER BY "tradeDate" ASC
+  `;
+
+  const adLine = advHistory.reduce((sum, row) => sum + (Number(row.adv) || 0), 0);
+
+  let scorePoints = 0;
+  if (adv > 0) scorePoints++;
+  if (adLine > 0) scorePoints++;
+  if (stocks.filter((s) => (s.ez ?? -Infinity) > 0).length / total > 0.5) scorePoints++;
+  if (stocks.filter((s) => (s.rsi14 ?? 0) > 50).length / total > 0.5) scorePoints++;
+  if (stocks.filter((s) => (s.macdHist ?? -Infinity) > 0).length / total > 0.5) scorePoints++;
+  if (stocks.filter((s) => (s.cci20 ?? -Infinity) > 0).length / total > 0.5) scorePoints++;
+
+  const score: "Defense" | "Selective" | "Attack" =
+    scorePoints <= 2 ? "Defense" : scorePoints <= 4 ? "Selective" : "Attack";
+
+  return { tradeDate: tradeDateStr, marketType, score, adv, adLine };
+}
+
+export async function fetchUptrendSymbols(marketType = "STOCK", tradeDate?: string): Promise<UptrendSymbolsResponse> {
+  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+
+  const rows = await prisma.$queryRaw<{ symbol: string; ez: number }[]>`
+    SELECT symbol, ez
+    FROM "TaseSecuritiesEndOfDayTradingData"
+    WHERE "tradeDate" = ${date}
+      AND "marketType" = ${marketType}
+      AND "turnover10" IS NOT NULL
+      AND "turnover10" >= 1500000
+      AND "rsi14" IS NOT NULL
+      AND "rsi14" BETWEEN 60 AND 70
+      AND "macdHist" IS NOT NULL
+      AND "macdHist" >= 0
+      AND "closingPrice" IS NOT NULL
+      AND "sma20" IS NOT NULL
+      AND "sma50" IS NOT NULL
+      AND "sma200" IS NOT NULL
+      AND "closingPrice" > "sma20"
+      AND "sma20" > "sma50"
+      AND "sma50" > "sma200"
+    ORDER BY ez ASC, symbol ASC
+  `;
+
+  const items = rows.map((r) => ({ symbol: r.symbol, ez: Number(r.ez) }));
+
+  return {
+    tradeDate: toDateStr(date),
+    marketType,
+    count: items.length,
+    items,
+  };
+}
+
+export async function fetchEndOfDaySymbols(
+  symbols?: string[],
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<EndOfDaySymbolsResponse> {
+  const lastDate = await getLastTradeDate("STOCK");
+  const from = dateFrom ? new Date(dateFrom) : lastDate;
+  const to = dateTo ? new Date(dateTo) : lastDate;
+
+  const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
+    where: {
+      ...(symbols && symbols.length > 0 ? { symbol: { in: symbols } } : {}),
+      tradeDate: { gte: from, lte: to },
+    },
+    select: EOD_SELECT,
+    orderBy: [{ symbol: "asc" }, { tradeDate: "asc" }],
+  });
+
+  return {
+    symbols: symbols ?? [],
+    count: rows.length,
+    dateFrom: toDateStr(from),
+    dateTo: toDateStr(to),
+    items: rows.map(rowToStockData),
+  };
+}
+
+export async function fetchEndOfDaySymbolsByDate(
+  symbols: string[],
+  tradeDate?: string,
+): Promise<EndOfDaySymbolsResponse> {
+  const lastDate = await getLastTradeDate("STOCK");
+  const date = tradeDate ? new Date(tradeDate) : lastDate;
+
+  const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
+    where: { symbol: { in: symbols }, tradeDate: date },
+    select: EOD_SELECT,
+    orderBy: { symbol: "asc" },
+  });
+
+  const dateStr = toDateStr(date);
+  return {
+    symbols,
+    count: rows.length,
+    dateFrom: dateStr,
+    dateTo: dateStr,
+    items: rows.map(rowToStockData),
+  };
+}
+
+export async function fetchCandlestick(
+  symbol: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<CandlestickResponse> {
+  const lastDate = await getLastTradeDate("STOCK");
+  const to = dateTo ? new Date(dateTo) : lastDate;
+  const from = dateFrom
+    ? new Date(dateFrom)
+    : new Date(new Date(to).setFullYear(to.getFullYear() - 1));
+
+  const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
+    where: { symbol, tradeDate: { gte: from, lte: to } },
+    select: EOD_SELECT,
+    orderBy: { tradeDate: "asc" },
+  });
+
+  return {
+    symbol,
+    count: rows.length,
+    dateFrom: rows.length > 0 ? toDateStr(rows[0]!.tradeDate) : null,
+    dateTo: rows.length > 0 ? toDateStr(rows[rows.length - 1]!.tradeDate) : null,
+    items: rows.map(rowToStockData),
+  };
+}
+
+export const dbProviders: TaseDataProviders = {
+  fetchEndOfDay,
+  fetchMarketSpirit,
+  fetchUptrendSymbols,
+  fetchEndOfDaySymbols,
+  fetchEndOfDaySymbolsByDate,
+  fetchCandlestick,
+};
