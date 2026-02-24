@@ -110,6 +110,10 @@ function getTodayDateIL(): string {
 
 async function runEodPipeline(date: string): Promise<{ fetched: number; created: number; updated: number; symbolsUpserted: number }> {
   const eodResult = await fetchAndStoreEod(date);
+  if (eodResult.created === 0) {
+    console.error(`[run-eod-pipeline] No new rows for ${date}, skipping indicators and symbols update`);
+    return { ...eodResult, updated: 0, symbolsUpserted: 0 };
+  }
   const indicatorsResult = await updateTradingDayIndicators({ tradeDate: date, marketType: "STOCK" });
   const symbolsResult = await fetchAndStoreSymbols(date);
   return { ...eodResult, ...indicatorsResult, symbolsUpserted: symbolsResult.upserted };
