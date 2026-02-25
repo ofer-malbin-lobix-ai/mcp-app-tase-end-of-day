@@ -385,7 +385,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
               symbols: data.symbols,
               count: data.count,
               dateFrom: args.dateFrom,
-              dateTo: args.dateTo ?? null,
+              dateTo: args.dateTo ?? data.dateTo,
               items: data.items,
             }),
           },
