@@ -9,7 +9,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { DataTable } from "./components/DataTable";
-import styles from "./end-of-day-widget.module.css";
+import styles from "./market-end-of-day-widget.module.css";
 
 interface StockData {
   tradeDate: string;
@@ -68,7 +68,7 @@ function extractEndOfDayData(callToolResult: CallToolResult | null | undefined):
       console.info("structuredContent has no rows array, falling back");
     }
 
-    // Fallback to text content (from get-end-of-day-data or app.callServerTool)
+    // Fallback to text content (from get-market-end-of-day-data or app.callServerTool)
     const textContent = callToolResult.content?.find((c) => c.type === "text");
     if (!textContent || textContent.type !== "text") {
       console.error("No text content found in result");
@@ -171,7 +171,7 @@ function EndOfDayApp() {
     setNeedsAutoFetch(false);
     if (typeof app.callServerTool !== "function") return;
     try {
-      app.callServerTool({ name: "get-end-of-day-data", arguments: toolInput })
+      app.callServerTool({ name: "get-market-end-of-day-data", arguments: toolInput })
         .then((result) => {
           const fetchedData = extractEndOfDayData(result);
           if (fetchedData) {
@@ -256,7 +256,7 @@ function EndOfDayAppInner({
       if (tradeDate) args.tradeDate = tradeDate;
       if (marketType) args.marketType = marketType;
       const result = await app.callServerTool({
-        name: "get-end-of-day-data",
+        name: "get-market-end-of-day-data",
         arguments: args,
       });
       const data = extractEndOfDayData(result);

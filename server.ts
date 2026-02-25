@@ -182,7 +182,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
   // Resource URIs
   const myPositionResourceUri = "ui://tase-end-of-day/my-position-table-widget-v1.html";
   const sectorHeatmapResourceUri = "ui://tase-end-of-day/market-sector-heatmap-widget-v1.html";
-  const endOfDayResourceUri = "ui://tase-end-of-day/end-of-day-widget-v8.html";
+  const endOfDayResourceUri = "ui://tase-end-of-day/market-end-of-day-widget-v1.html";
   const marketSpiritResourceUri = "ui://tase-end-of-day/market-spirit-widget-v8.html";
   const uptrendSymbolsResourceUri = "ui://tase-end-of-day/uptrend-symbols-widget-v8.html";
   const endOfDaySymbolsResourceUri = "ui://tase-end-of-day/symbols-end-of-day-widget-v1.html";
@@ -193,10 +193,10 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
 
   // Data-only tool: Get TASE end of day data
   registerAppTool(server,
-    "get-end-of-day-data",
+    "get-market-end-of-day-data",
     {
-      title: "Get TASE End of Day Data",
-      description: "Returns TASE end of day data including prices, volume, and technical indicators. Data only - use show-end-of-day-widget for visualization.",
+      title: "Get Market End of Day Data",
+      description: "Returns TASE end of day data including prices, volume, and technical indicators. Data only - use show-market-end-of-day-widget for visualization.",
       inputSchema: getTaseDataSchema,
       _meta: { ui: { visibility: ["model", "app"] } },
     },
@@ -208,9 +208,9 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
 
   // UI tool: Show TASE end of day data with interactive table
   registerAppTool(server,
-    "show-end-of-day-widget",
+    "show-market-end-of-day-widget",
     {
-      title: "Show TASE End of Day",
+      title: "Show Market End of Day",
       description: "Displays Tel Aviv Stock Exchange end of day data with interactive table visualization.",
       inputSchema: getTaseDataSchema,
       _meta: { ui: { resourceUri: endOfDayResourceUri } },
@@ -593,7 +593,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     endOfDayResourceUri, endOfDayResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(path.join(DIST_DIR, "end-of-day-widget.html"), "utf-8");
+      const html = await fs.readFile(path.join(DIST_DIR, "market-end-of-day-widget.html"), "utf-8");
       return { contents: [{ uri: endOfDayResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
