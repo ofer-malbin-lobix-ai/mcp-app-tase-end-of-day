@@ -215,19 +215,18 @@ function Sidebar({ symbols, selectedSymbol, onSelectSymbol, period, onPeriodChan
 interface ChartPanelProps {
   data: CandlestickWidgetData;
   isFullscreen: boolean;
-  timeframe: CandlestickTimeframe;
+  showCandles: boolean; onShowCandlesChange: (v: boolean) => void;
+  showVolume: boolean;  onShowVolumeChange:  (v: boolean) => void;
+  showSma20: boolean;   onShowSma20Change:   (v: boolean) => void;
+  showSma50: boolean;   onShowSma50Change:   (v: boolean) => void;
+  showSma200: boolean;  onShowSma200Change:  (v: boolean) => void;
+  showEz: boolean;      onShowEzChange:      (v: boolean) => void;
 }
 
-function ChartPanel({ data, isFullscreen, timeframe }: ChartPanelProps) {
+function ChartPanel({ data, isFullscreen, showCandles, onShowCandlesChange, showVolume, onShowVolumeChange, showSma20, onShowSma20Change, showSma50, onShowSma50Change, showSma200, onShowSma200Change, showEz, onShowEzChange }: ChartPanelProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [chartSize, setChartSize] = useState<{ width: number; height: number }>({ width: 600, height: 400 });
   const [legendValues, setLegendValues] = useState<LegendValues | null>(null);
-  const [showEz, setShowEz] = useState(false);
-  const [showSma20, setShowSma20] = useState(false);
-  const [showSma50, setShowSma50] = useState(false);
-  const [showSma200, setShowSma200] = useState(false);
-  const [showVolume, setShowVolume] = useState(true);
-  const [showCandles, setShowCandles] = useState(true);
 
   useEffect(() => {
     const el = chartContainerRef.current;
@@ -343,34 +342,34 @@ function ChartPanel({ data, isFullscreen, timeframe }: ChartPanelProps) {
     <>
       <div className={styles.overlays}>
         <label className={styles.checkboxLabel}>
-          <input type="checkbox" checked={showCandles} onChange={(e) => setShowCandles(e.target.checked)} />
+          <input type="checkbox" checked={showCandles} onChange={(e) => onShowCandlesChange(e.target.checked)} />
           Candles
         </label>
         <label className={styles.checkboxLabel}>
-          <input type="checkbox" checked={showVolume} onChange={(e) => setShowVolume(e.target.checked)} />
+          <input type="checkbox" checked={showVolume} onChange={(e) => onShowVolumeChange(e.target.checked)} />
           Volume
         </label>
         {sma20Data.length > 0 && (
           <label className={styles.checkboxLabel}>
-            <input type="checkbox" checked={showSma20} onChange={(e) => setShowSma20(e.target.checked)} />
+            <input type="checkbox" checked={showSma20} onChange={(e) => onShowSma20Change(e.target.checked)} />
             SMA20
           </label>
         )}
         {sma50Data.length > 0 && (
           <label className={styles.checkboxLabel}>
-            <input type="checkbox" checked={showSma50} onChange={(e) => setShowSma50(e.target.checked)} />
+            <input type="checkbox" checked={showSma50} onChange={(e) => onShowSma50Change(e.target.checked)} />
             SMA50
           </label>
         )}
         {sma200Data.length > 0 && (
           <label className={styles.checkboxLabel}>
-            <input type="checkbox" checked={showSma200} onChange={(e) => setShowSma200(e.target.checked)} />
+            <input type="checkbox" checked={showSma200} onChange={(e) => onShowSma200Change(e.target.checked)} />
             SMA200
           </label>
         )}
         {ezData.length > 0 && (
           <label className={styles.checkboxLabel}>
-            <input type="checkbox" checked={showEz} onChange={(e) => setShowEz(e.target.checked)} />
+            <input type="checkbox" checked={showEz} onChange={(e) => onShowEzChange(e.target.checked)} />
             EZ
           </label>
         )}
@@ -483,6 +482,12 @@ function SymbolsCandlestickApp() {
   const [sidebarPeriod, setSidebarPeriod] = useState<HeatmapPeriod>("1D");
   const [sidebarItems, setSidebarItems] = useState<StockData[] | null>(null);
   const [isFetchingPeriod, setIsFetchingPeriod] = useState(false);
+  const [showCandles, setShowCandles] = useState(true);
+  const [showVolume, setShowVolume] = useState(true);
+  const [showSma20, setShowSma20] = useState(false);
+  const [showSma50, setShowSma50] = useState(false);
+  const [showSma200, setShowSma200] = useState(false);
+  const [showEz, setShowEz] = useState(false);
   const [hostContext, setHostContext] = useState<McpUiHostContext | undefined>();
   const [displayMode, setDisplayMode] = useState<"inline" | "fullscreen">("inline");
 
@@ -754,7 +759,16 @@ function SymbolsCandlestickApp() {
             {isChartLoading ? (
               <div className={styles.chartLoading}>Loading chart for {selectedSymbol}...</div>
             ) : chartData ? (
-              <ChartPanel data={chartData} isFullscreen={displayMode === "fullscreen"} timeframe={selectedTimeframe} />
+              <ChartPanel
+                data={chartData}
+                isFullscreen={displayMode === "fullscreen"}
+                showCandles={showCandles} onShowCandlesChange={setShowCandles}
+                showVolume={showVolume}   onShowVolumeChange={setShowVolume}
+                showSma20={showSma20}     onShowSma20Change={setShowSma20}
+                showSma50={showSma50}     onShowSma50Change={setShowSma50}
+                showSma200={showSma200}   onShowSma200Change={setShowSma200}
+                showEz={showEz}           onShowEzChange={setShowEz}
+              />
             ) : (
               <div className={styles.noChart}>Select a symbol to view its candlestick chart</div>
             )}
