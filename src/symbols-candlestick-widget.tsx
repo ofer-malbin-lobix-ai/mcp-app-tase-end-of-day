@@ -177,7 +177,7 @@ function Sidebar({ symbols, selectedSymbol, onSelectSymbol, period, onPeriodChan
           <thead>
             <tr>
               <th>Symbol</th>
-              <th>Last</th>
+              <th>Close</th>
               <th>{period} %</th>
             </tr>
           </thead>
