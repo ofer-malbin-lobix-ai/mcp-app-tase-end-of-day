@@ -531,7 +531,7 @@ function SymbolsCandlestickApp() {
     if (!needsAutoFetch || !app) return;
     setNeedsAutoFetch(false);
     if (typeof app.callServerTool !== "function") return;
-    app.callServerTool({ name: "get-symbols-end-of-day-data", arguments: {} })
+    app.callServerTool({ name: "get-my-position-end-of-day-data", arguments: {} })
       .then((result) => {
         const fetched = extractEndOfDaySymbolsData(result);
         if (fetched) setEodData(fetched);
