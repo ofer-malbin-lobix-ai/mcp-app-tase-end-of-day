@@ -11,6 +11,15 @@ import { createRoot } from "react-dom/client";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+type HeatmapPeriod = "1D" | "1W" | "1M" | "3M";
+
+const PERIODS: { value: HeatmapPeriod; label: string }[] = [
+  { value: "1D", label: "1D" },
+  { value: "1W", label: "1W" },
+  { value: "1M", label: "1M" },
+  { value: "3M", label: "3M" },
+];
+
 interface SymbolHeatmapItem {
   symbol: string;
   companyName: string | null;
@@ -23,6 +32,7 @@ interface SymbolHeatmapItem {
 interface SectorHeatmapResponse {
   tradeDate: string;
   marketType: string;
+  period?: HeatmapPeriod;
   count: number;
   items: SymbolHeatmapItem[];
 }
@@ -318,6 +328,7 @@ function HeatmapInner({ app, data, setData }: HeatmapInnerProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedPeriod, setSelectedPeriod] = useState<HeatmapPeriod>("1D");
   const containerRef = useRef<HTMLDivElement>(null);
   const [svgWidth, setSvgWidth] = useState(800);
 
@@ -329,12 +340,14 @@ function HeatmapInner({ app, data, setData }: HeatmapInnerProps) {
     }
   }, []);
 
-  // Sync date picker from data on first load
+  // Sync controls from data on first load
   useEffect(() => {
-    if (data?.tradeDate && !selectedDate) {
-      setSelectedDate(data.tradeDate);
-    }
+    if (data?.tradeDate && !selectedDate) setSelectedDate(data.tradeDate);
   }, [data?.tradeDate, selectedDate]);
+
+  useEffect(() => {
+    if (data?.period) setSelectedPeriod(data.period);
+  }, [data?.period]);
 
   // Reset drill level when data changes
   useEffect(() => {
@@ -382,12 +395,13 @@ function HeatmapInner({ app, data, setData }: HeatmapInnerProps) {
     setTooltip(null);
   }, []);
 
-  const handleRefresh = useCallback(async (tradeDate?: string) => {
+  const handleRefresh = useCallback(async (tradeDate?: string, period?: HeatmapPeriod) => {
     setIsRefreshing(true);
     setRefreshError(null);
     try {
       const args: Record<string, string> = {};
       if (tradeDate) args.tradeDate = tradeDate;
+      if (period) args.period = period;
       const result = await app.callServerTool({ name: "get-sector-heatmap-data", arguments: args });
       const d = extractHeatmapData(result);
       if (d) setData(d);
@@ -399,6 +413,11 @@ function HeatmapInner({ app, data, setData }: HeatmapInnerProps) {
       setIsRefreshing(false);
     }
   }, [app, setData]);
+
+  const handlePeriodClick = useCallback((p: HeatmapPeriod) => {
+    setSelectedPeriod(p);
+    handleRefresh(selectedDate || undefined, p);
+  }, [selectedDate, handleRefresh]);
 
   const isClickable = drill.level !== "symbols";
 
@@ -453,6 +472,30 @@ function HeatmapInner({ app, data, setData }: HeatmapInnerProps) {
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {/* Period buttons */}
+          <div style={{ display: "flex", gap: 2 }}>
+            {PERIODS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => handlePeriodClick(p.value)}
+                disabled={isRefreshing}
+                style={{
+                  background: selectedPeriod === p.value ? "#3b82f6" : "#1e293b",
+                  color: selectedPeriod === p.value ? "white" : "#94a3b8",
+                  border: "none",
+                  borderRadius: 4,
+                  padding: "3px 7px",
+                  cursor: isRefreshing ? "default" : "pointer",
+                  fontSize: 11,
+                  lineHeight: 1,
+                  opacity: isRefreshing ? 0.5 : 1,
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <span style={{ color: "#334155", fontSize: 10 }}>|</span>
           {data && (
             <span style={{ color: "#475569", fontSize: 10 }}>
               {data.marketType} · {data.count} stocks
@@ -474,7 +517,7 @@ function HeatmapInner({ app, data, setData }: HeatmapInnerProps) {
             }}
           />
           <button
-            onClick={() => handleRefresh(selectedDate || undefined)}
+            onClick={() => handleRefresh(selectedDate || undefined, selectedPeriod)}
             disabled={isRefreshing}
             style={{
               background: "#1e293b",

@@ -7,6 +7,7 @@ import type {
   EndOfDaySymbolsResponse,
   CandlestickResponse,
   CandlestickTimeframe,
+  HeatmapPeriod,
   SectorHeatmapResponse,
   SymbolHeatmapItem,
   TaseDataProviders,
@@ -450,43 +451,113 @@ export async function fetchCandlestick(
   };
 }
 
-export async function fetchSectorHeatmap(marketType = "STOCK", tradeDate?: string): Promise<SectorHeatmapResponse> {
-  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+const HEATMAP_PERIOD_OFFSETS: Record<HeatmapPeriod, number> = {
+  "1D": 1,
+  "1W": 5,
+  "1M": 21,
+  "3M": 63,
+};
 
-  const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
-    where: { tradeDate: date, marketType },
-    select: {
-      symbol: true,
-      marketCap: true,
-      change: true,
-      taseSymbol: {
-        select: {
-          companyName: true,
-          companySector: true,
-          companySubSector: true,
+type PeriodRow = {
+  symbol: string;
+  marketCap: bigint | null;
+  companyName: string | null;
+  companySector: string;
+  companySubSector: string | null;
+  change: number | null;
+};
+
+export async function fetchSectorHeatmap(
+  marketType = "STOCK",
+  tradeDate?: string,
+  period: HeatmapPeriod = "1D",
+): Promise<SectorHeatmapResponse> {
+  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+  const dateStr = toDateStr(date);
+
+  if (period === "1D") {
+    const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
+      where: { tradeDate: date, marketType },
+      select: {
+        symbol: true,
+        marketCap: true,
+        change: true,
+        taseSymbol: {
+          select: { companyName: true, companySector: true, companySubSector: true },
         },
       },
-    },
-    orderBy: { symbol: "asc" },
-  });
+      orderBy: { symbol: "asc" },
+    });
 
-  const items: SymbolHeatmapItem[] = rows
-    .filter((r) => r.taseSymbol?.companySector != null)
-    .map((r) => ({
-      symbol: r.symbol,
-      companyName: r.taseSymbol?.companyName ?? null,
-      marketCap: r.marketCap != null ? Number(r.marketCap) : null,
-      change: r.change,
-      sector: r.taseSymbol!.companySector!,
-      subSector: r.taseSymbol?.companySubSector ?? null,
-    }));
+    const items: SymbolHeatmapItem[] = rows
+      .filter((r) => r.taseSymbol?.companySector != null)
+      .map((r) => ({
+        symbol: r.symbol,
+        companyName: r.taseSymbol?.companyName ?? null,
+        marketCap: r.marketCap != null ? Number(r.marketCap) : null,
+        change: r.change,
+        sector: r.taseSymbol!.companySector!,
+        subSector: r.taseSymbol?.companySubSector ?? null,
+      }));
 
-  return {
-    tradeDate: toDateStr(date),
-    marketType,
-    count: items.length,
-    items,
-  };
+    return { tradeDate: dateStr, marketType, period, count: items.length, items };
+  }
+
+  // 1W / 1M / 3M: compute period change via LAG window function
+  const N = HEATMAP_PERIOD_OFFSETS[period];
+  const limit = N + 1;
+
+  const rows = await prisma.$queryRaw<PeriodRow[]>`
+    WITH recent_dates AS (
+      SELECT DISTINCT "tradeDate"
+      FROM "TaseSecuritiesEndOfDayTradingData"
+      WHERE "marketType" = ${marketType}
+        AND "tradeDate" <= ${date}::date
+      ORDER BY "tradeDate" DESC
+      LIMIT ${limit}
+    ),
+    windowed AS (
+      SELECT
+        t.symbol,
+        t."tradeDate",
+        t."closingPrice",
+        t."marketCap",
+        s."companyName",
+        s."companySector",
+        s."companySubSector",
+        LAG(t."closingPrice", ${N}) OVER (PARTITION BY t.symbol ORDER BY t."tradeDate") AS past_close
+      FROM "TaseSecuritiesEndOfDayTradingData" t
+      LEFT JOIN "TaseSymbol" s ON t.symbol = s.symbol
+      WHERE t."tradeDate" IN (SELECT "tradeDate" FROM recent_dates)
+        AND t."marketType" = ${marketType}
+    )
+    SELECT
+      symbol,
+      "marketCap",
+      "companyName",
+      "companySector",
+      "companySubSector",
+      CASE
+        WHEN past_close IS NOT NULL AND CAST(past_close AS FLOAT8) > 0
+        THEN CAST(("closingPrice" - past_close) / past_close * 100 AS FLOAT8)
+        ELSE NULL
+      END AS change
+    FROM windowed
+    WHERE "tradeDate" = ${date}::date
+      AND "companySector" IS NOT NULL
+    ORDER BY symbol
+  `;
+
+  const items: SymbolHeatmapItem[] = rows.map((r) => ({
+    symbol: r.symbol,
+    companyName: r.companyName,
+    marketCap: r.marketCap != null ? Number(r.marketCap) : null,
+    change: r.change != null ? Number(r.change) : null,
+    sector: r.companySector,
+    subSector: r.companySubSector,
+  }));
+
+  return { tradeDate: dateStr, marketType, period, count: items.length, items };
 }
 
 export const dbProviders: TaseDataProviders = {
