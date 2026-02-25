@@ -292,10 +292,13 @@ export async function fetchEndOfDaySymbolsByDate(
   if (period === "1D") {
     const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
       where: { symbol: { in: symbols }, tradeDate: date },
-      select: EOD_SELECT,
+      select: { ...EOD_SELECT, taseSymbol: { select: { companyName: true } } },
       orderBy: { symbol: "asc" },
     });
-    return { symbols, count: rows.length, dateFrom: dateStr, dateTo: dateStr, items: rows.map(rowToStockData) };
+    return {
+      symbols, count: rows.length, dateFrom: dateStr, dateTo: dateStr,
+      items: rows.map((row) => ({ ...rowToStockData(row), companyName: row.taseSymbol?.companyName ?? null })),
+    };
   }
 
   // 1W / 1M / 3M: compute period change via LAG window function

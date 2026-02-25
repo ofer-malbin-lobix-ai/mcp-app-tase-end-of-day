@@ -180,6 +180,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
   });
 
   // Resource URIs
+  const myPositionResourceUri = "ui://tase-end-of-day/my-position-widget-v1.html";
   const sectorHeatmapResourceUri = "ui://tase-end-of-day/sector-heatmap-widget-v3.html";
   const endOfDayResourceUri = "ui://tase-end-of-day/end-of-day-widget-v8.html";
   const marketSpiritResourceUri = "ui://tase-end-of-day/market-spirit-widget-v8.html";
@@ -500,6 +501,53 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     },
   );
 
+  // Data-only tool: Get My Position data
+  registerAppTool(server,
+    "get-my-position-data",
+    {
+      title: "Get My Position Data",
+      description: "Returns EOD data for a user's portfolio symbols. Period controls the change %: 1D=daily, 1W=weekly (5 trading days), 1M=monthly (21 trading days), 3M=quarterly (63 trading days). Data only - use show-my-position-widget for visualization.",
+      inputSchema: {
+        symbols: z.array(z.string()).describe("List of portfolio symbols (e.g. ['TEVA', 'LUMI'])"),
+        tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format. If not provided, returns the last available trading day."),
+        period: z.enum(["1D", "1W", "1M", "3M"]).optional().describe("Change period: 1D=daily, 1W=weekly (5 days), 1M=monthly (21 days), 3M=quarterly (63 days). Default: 1D"),
+      },
+      _meta: { ui: { visibility: ["model", "app"] } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.tradeDate, args.period as HeatmapPeriod | undefined);
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ symbols: data.symbols, count: data.count, dateFrom: data.dateFrom, dateTo: data.dateTo, items: data.items }),
+        }],
+      };
+    },
+  );
+
+  // UI tool: Show My Position widget
+  registerAppTool(server,
+    "show-my-position-widget",
+    {
+      title: "Show My Positions",
+      description: "Displays a user's portfolio symbols as an interactive EOD table with sortable columns (Symbol, Company, Close, Change%, Turnover, RSI, EZ) and period selector (1D/1W/1M/3M).",
+      inputSchema: {
+        symbols: z.array(z.string()).describe("List of portfolio symbols (e.g. ['TEVA', 'LUMI'])"),
+        tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format. If not provided, returns the last available trading day."),
+      },
+      _meta: { ui: { resourceUri: myPositionResourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.tradeDate, "1D");
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ symbols: data.symbols, count: data.count, dateFrom: data.dateFrom, dateTo: data.dateTo, items: data.items }),
+        }],
+      };
+    },
+  );
+
   // UI tool: Show Subscription landing page
   registerAppTool(server,
     "show-tase-end-of-day-landing-widget",
@@ -523,6 +571,15 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
   );
 
   // Register resources
+  registerAppResource(server,
+    myPositionResourceUri, myPositionResourceUri,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(path.join(DIST_DIR, "my-position-widget.html"), "utf-8");
+      return { contents: [{ uri: myPositionResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
+    },
+  );
+
   registerAppResource(server,
     sectorHeatmapResourceUri, sectorHeatmapResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
