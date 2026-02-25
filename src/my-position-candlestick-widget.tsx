@@ -693,7 +693,7 @@ function SymbolsCandlestickApp() {
     >
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Multi-Symbol Candlestick</h1>
+          <h1 className={styles.title}>My Position Candlestick</h1>
           {eodData && (
             <div className={styles.subtitle}>
               {eodData.symbols.join(", ")}
