@@ -180,16 +180,16 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
   });
 
   // Resource URIs
-  const myPositionResourceUri = "ui://tase-end-of-day/my-position-table-widget-v1.html";
-  const sectorHeatmapResourceUri = "ui://tase-end-of-day/market-sector-heatmap-widget-v1.html";
-  const endOfDayResourceUri = "ui://tase-end-of-day/market-end-of-day-widget-v1.html";
-  const marketSpiritResourceUri = "ui://tase-end-of-day/market-spirit-widget-v8.html";
-  const uptrendSymbolsResourceUri = "ui://tase-end-of-day/market-uptrend-symbols-widget-v1.html";
-  const endOfDaySymbolsResourceUri = "ui://tase-end-of-day/my-position-end-of-day-widget-v1.html";
-  const candlestickResourceUri = "ui://tase-end-of-day/symbol-candlestick-widget-v8.html";
-  const symbolsCandlestickResourceUri = "ui://tase-end-of-day/my-position-candlestick-widget-v1.html";
-  const dashboardResourceUri = "ui://tase-end-of-day/market-dashboard-widget-v8.html";
-  const subscriptionResourceUri = "ui://tase-end-of-day/tase-end-of-day-landing-widget-v8.html";
+  const myPositionResourceUri = "ui://tase-end-of-day/my-position-table-widget-v2.html";
+  const sectorHeatmapResourceUri = "ui://tase-end-of-day/market-sector-heatmap-widget-v2.html";
+  const endOfDayResourceUri = "ui://tase-end-of-day/market-end-of-day-widget-v2.html";
+  const marketSpiritResourceUri = "ui://tase-end-of-day/market-spirit-widget-v2.html";
+  const uptrendSymbolsResourceUri = "ui://tase-end-of-day/market-uptrend-symbols-widget-v2.html";
+  const endOfDaySymbolsResourceUri = "ui://tase-end-of-day/my-position-end-of-day-widget-v2.html";
+  const candlestickResourceUri = "ui://tase-end-of-day/symbol-candlestick-widget-v2.html";
+  const symbolsCandlestickResourceUri = "ui://tase-end-of-day/my-position-candlestick-widget-v2.html";
+  const dashboardResourceUri = "ui://tase-end-of-day/market-dashboard-widget-v2.html";
+  const subscriptionResourceUri = "ui://tase-end-of-day/tase-end-of-day-landing-widget-v2.html";
 
   // Data-only tool: Get TASE end of day data
   registerAppTool(server,
