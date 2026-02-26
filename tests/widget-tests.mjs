@@ -7,7 +7,11 @@
  *   - OR run: npm run test:start-chrome
  *
  * Usage:
- *   node tests/widget-tests.mjs [test-name]
+ *   node tests/widget-tests.mjs [test-name] [--mcp <name>]
+ *
+ * Options:
+ *   --mcp <name>   MCP app name to use in messages (default: "eod prod")
+ *                  e.g. --mcp eod-dev
  *
  * Available tests:
  *   market-end-of-day       — show-market-end-of-day-widget
@@ -25,6 +29,14 @@ import { mkdirSync } from 'fs';
 const CHROME_URL = 'http://localhost:9226';
 const SCREENSHOT_DIR = '/tmp/tase-widget-tests';
 mkdirSync(SCREENSHOT_DIR, { recursive: true });
+
+// ─── CLI args ────────────────────────────────────────────────────────────────
+
+const args = process.argv.slice(2);
+const mcpFlagIdx = args.indexOf('--mcp');
+const MCP_NAME = mcpFlagIdx !== -1 ? args[mcpFlagIdx + 1] : 'eod prod';
+const testArg = args.filter((_, i) => i !== mcpFlagIdx && i !== mcpFlagIdx + 1)[0] || 'all';
+console.log(`Using MCP: @${MCP_NAME}`);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -56,7 +68,7 @@ async function waitForWidgetFrame(page, { selector = 'table, svg rect[fill]', ti
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
     for (const f of page.frames()) {
-      if (!f.url().includes('oaiusercontent')) continue;
+      if (f === page.mainFrame()) continue;
       try {
         const found = await f.evaluate((sel) => !!document.querySelector(sel), selector);
         if (found) return f;
@@ -87,7 +99,7 @@ async function clickButton(frame, label) {
 async function testMarketEndOfDay(page) {
   console.log('\n🧪 Test: market-end-of-day');
   await newChat(page);
-  await sendMessage(page, '@eod prod show me the market end of day widget');
+  await sendMessage(page, `@${MCP_NAME} show me the market end of day widget`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'market-end-of-day');
@@ -97,7 +109,7 @@ async function testMarketEndOfDay(page) {
 async function testMyPositionTable(page) {
   console.log('\n🧪 Test: my-position-table');
   await newChat(page);
-  await sendMessage(page, '@eod prod show my position table widget for symbols TEVA, NICE, ESLT');
+  await sendMessage(page, `@${MCP_NAME} show my position table widget for symbols TEVA, NICE, ESLT`);
   console.log('  Waiting for widget...');
   await sleep(30000);
   await screenshot(page, 'my-position-table-1d');
@@ -117,7 +129,7 @@ async function testMyPositionTable(page) {
 async function testMarketSectorHeatmap(page) {
   console.log('\n🧪 Test: market-sector-heatmap');
   await newChat(page);
-  await sendMessage(page, '@eod prod show me the market sector heatmap widget');
+  await sendMessage(page, `@${MCP_NAME} show me the market sector heatmap widget`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'market-sector-heatmap-sectors');
@@ -154,7 +166,7 @@ async function testMarketSectorHeatmap(page) {
 async function testMyPositionCandlestick(page) {
   console.log('\n🧪 Test: my-position-candlestick');
   await newChat(page);
-  await sendMessage(page, '@eod prod show my position candlestick widget for symbols TEVA, NICE, ESLT');
+  await sendMessage(page, `@${MCP_NAME} show my position candlestick widget for symbols TEVA, NICE, ESLT`);
   console.log('  Waiting for widget...');
   await sleep(40000);
   await screenshot(page, 'my-position-candlestick-eslt');
@@ -184,7 +196,7 @@ async function testMyPositionCandlestick(page) {
 async function testMyPositionEndOfDay(page) {
   console.log('\n🧪 Test: my-position-end-of-day');
   await newChat(page);
-  await sendMessage(page, '@eod prod show my position end of day widget for symbols TEVA, NICE, ESLT');
+  await sendMessage(page, `@${MCP_NAME} show my position end of day widget for symbols TEVA, NICE, ESLT`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'my-position-end-of-day');
@@ -221,20 +233,19 @@ const TEST_MAP = {
   'my-position-end-of-day':  testMyPositionEndOfDay,
 };
 
-const arg = process.argv[2] || 'all';
 const { browser, page } = await connectBrowser();
 
 try {
-  if (arg === 'all') {
+  if (testArg === 'all') {
     for (const [name, fn] of Object.entries(TEST_MAP)) {
       await fn(page);
     }
     console.log('\n🎉 All tests completed!');
-  } else if (TEST_MAP[arg]) {
-    await TEST_MAP[arg](page);
+  } else if (TEST_MAP[testArg]) {
+    await TEST_MAP[testArg](page);
     console.log('\n🎉 Test completed!');
   } else {
-    console.error(`Unknown test: "${arg}". Available: ${Object.keys(TEST_MAP).join(', ')}, all`);
+    console.error(`Unknown test: "${testArg}". Available: ${Object.keys(TEST_MAP).join(', ')}, all`);
     process.exit(1);
   }
 } finally {

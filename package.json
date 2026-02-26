@@ -41,7 +41,9 @@
     "dev": "cross-env NODE_ENV=development concurrently 'npm run watch' 'tsx --watch main.ts'",
     "test:start-chrome": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9226 --user-data-dir=/Users/ofermalbin/.claude/puppeteer-profile --no-first-run --no-default-browser-check --disable-extensions about:blank &",
     "test:widget": "node tests/widget-tests.mjs",
-    "test:all": "node tests/widget-tests.mjs all"
+    "test:all": "node tests/widget-tests.mjs all",
+    "test:widget:dev": "node tests/widget-tests.mjs --mcp eod-dev",
+    "test:all:dev": "node tests/widget-tests.mjs all --mcp eod-dev"
   },
   "dependencies": {
     "@clerk/express": "^1.7.69",
