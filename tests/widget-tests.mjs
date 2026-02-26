@@ -223,14 +223,87 @@ async function testMyPositionEndOfDay(page) {
   console.log('  ✅ my-position-end-of-day passed');
 }
 
+async function testMyPositionsManager(page) {
+  console.log('\n🧪 Test: my-positions-manager');
+  await newChat(page);
+  await sendMessage(page, `@${MCP_NAME} show my positions manager widget`);
+  console.log('  Waiting for widget...');
+  await sleep(30000);
+
+  const frame = await waitForWidgetFrame(page, { selector: 'button, .empty' });
+  if (!frame) { console.log('  ⚠️  Widget frame not found'); return; }
+  await screenshot(page, 'my-positions-manager-empty');
+
+  // ── Add position ──────────────────────────────────────────────────
+  const addClicked = await clickButton(frame, '+ Add Position');
+  console.log(`  ${addClicked ? '✅' : '⚠️ '} Add Position button ${addClicked ? 'clicked' : 'not found'}`);
+  await sleep(1000);
+  await screenshot(page, 'my-positions-manager-form');
+
+  // Fill form
+  await frame.evaluate(() => {
+    const inputs = document.querySelectorAll('input');
+    // Symbol, StartDate, Amount
+    if (inputs[0]) { inputs[0].focus(); inputs[0].value = ''; }
+  });
+  await frame.type('input[placeholder="e.g. TEVA"]', 'TEVA');
+  await frame.type('input[placeholder="YYYY-MM-DD"]', '2026-01-01');
+  await frame.type('input[type="number"]', '100');
+  await sleep(500);
+  await screenshot(page, 'my-positions-manager-form-filled');
+
+  const saved = await clickButton(frame, 'Save');
+  console.log(`  ${saved ? '✅' : '⚠️ '} Save button ${saved ? 'clicked' : 'not found'}`);
+  await sleep(8000);
+  await screenshot(page, 'my-positions-manager-added');
+
+  // Verify TEVA appears in table
+  const hasTeva = await frame.evaluate(() => !!document.querySelector('td,tr') &&
+    document.body.textContent.includes('TEVA'));
+  console.log(`  ${hasTeva ? '✅' : '⚠️ '} TEVA ${hasTeva ? 'appears in table' : 'not found in table'}`);
+
+  // ── Edit position ─────────────────────────────────────────────────
+  const editClicked = await clickButton(frame, 'Edit');
+  console.log(`  ${editClicked ? '✅' : '⚠️ '} Edit button ${editClicked ? 'clicked' : 'not found'}`);
+  await sleep(1000);
+
+  // Update amount to 200
+  await frame.evaluate(() => {
+    const input = document.querySelector('input[type="number"]');
+    if (input) { input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true })); }
+  });
+  await frame.type('input[type="number"]', '200');
+  await sleep(300);
+
+  const savedEdit = await clickButton(frame, 'Save');
+  console.log(`  ${savedEdit ? '✅' : '⚠️ '} Save edit ${savedEdit ? 'clicked' : 'not found'}`);
+  await sleep(8000);
+  await screenshot(page, 'my-positions-manager-edited');
+
+  const has200 = await frame.evaluate(() => document.body.textContent.includes('200'));
+  console.log(`  ${has200 ? '✅' : '⚠️ '} Amount updated to 200: ${has200 ? 'yes' : 'not confirmed'}`);
+
+  // ── Delete position ───────────────────────────────────────────────
+  const deleteClicked = await clickButton(frame, 'Delete');
+  console.log(`  ${deleteClicked ? '✅' : '⚠️ '} Delete button ${deleteClicked ? 'clicked' : 'not found'}`);
+  await sleep(8000);
+  await screenshot(page, 'my-positions-manager-deleted');
+
+  const isEmpty = await frame.evaluate(() => document.body.textContent.includes('No positions yet'));
+  console.log(`  ${isEmpty ? '✅' : '⚠️ '} Empty state after delete: ${isEmpty ? 'yes' : 'not confirmed'}`);
+
+  console.log('  ✅ my-positions-manager passed');
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 const TEST_MAP = {
-  'market-end-of-day':       testMarketEndOfDay,
-  'my-position-table':       testMyPositionTable,
-  'market-sector-heatmap':   testMarketSectorHeatmap,
-  'my-position-candlestick': testMyPositionCandlestick,
-  'my-position-end-of-day':  testMyPositionEndOfDay,
+  'market-end-of-day':        testMarketEndOfDay,
+  'my-position-table':        testMyPositionTable,
+  'market-sector-heatmap':    testMarketSectorHeatmap,
+  'my-position-candlestick':  testMyPositionCandlestick,
+  'my-position-end-of-day':   testMyPositionEndOfDay,
+  'my-positions-manager':     testMyPositionsManager,
 };
 
 const { browser, page } = await connectBrowser();
