@@ -17,8 +17,8 @@ Tests run against the **production deployment** by default — no server setup o
 
 ```bash
 # 1. Get the test file (clone the repo or download just the tests/ folder)
-git clone https://github.com/ofer-malbin-lobix-ai/mcp-app-tase-end-of-day.git
-cd mcp-app-tase-end-of-day/tests
+git clone https://github.com/ofer-malbin-lobix-ai/mcp-app-tase-market.git
+cd mcp-app-tase-market/tests
 
 # 2. Install the single dependency
 npm install
