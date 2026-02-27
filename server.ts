@@ -180,6 +180,14 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     return (extra?.authInfo?.extra?.userId as string) ?? null;
   }
 
+  async function getUserPositionSymbols(extra: any): Promise<{ symbols: string[]; error?: string }> {
+    const userId = getUserIdFromExtra(extra);
+    if (!userId) return { symbols: [], error: "Not authenticated" };
+    const user = await clerkClient.users.getUser(userId);
+    const positions = (user.privateMetadata?.positions as UserPosition[] | undefined) ?? [];
+    return { symbols: positions.map(p => p.symbol) };
+  }
+
   const server = new McpServer({
     name: "TASE End of Day Server",
     version: "1.0.0",
@@ -317,12 +325,18 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     "get-my-position-end-of-day-data",
     {
       title: "Get My Position End of Day Data",
-      description: "Returns TASE end of day data for specific symbols across a date range. Data only - use show-my-position-end-of-day-widget for visualization.",
-      inputSchema: getEndOfDaySymbolsSchema,
+      description: "Returns TASE end of day data for the user's portfolio symbols across a date range. Data only - use show-my-position-end-of-day-widget for visualization.",
+      inputSchema: {
+        dateFrom: z.string().optional().describe("Start date in YYYY-MM-DD format. If not provided, defaults to the last available trading day."),
+        dateTo: z.string().optional().describe("End date in YYYY-MM-DD format. If not provided, defaults to the last available trading day."),
+      },
       _meta: { ui: { visibility: ["model", "app"] } },
     },
-    async (args): Promise<CallToolResult> => {
-      const data = await providers.fetchEndOfDaySymbols(args.symbols, args.dateFrom, args.dateTo);
+    async (args, extra): Promise<CallToolResult> => {
+      const { symbols, error } = await getUserPositionSymbols(extra);
+      if (error) return { content: [{ type: "text", text: JSON.stringify({ error }) }] };
+      if (symbols.length === 0) return { content: [{ type: "text", text: JSON.stringify({ error: "No positions found" }) }] };
+      const data = await providers.fetchEndOfDaySymbols(symbols, args.dateFrom, args.dateTo);
       return formatEndOfDaySymbolsResult(data);
     },
   );
@@ -332,12 +346,18 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     "show-my-position-end-of-day-widget",
     {
       title: "Show My Position End of Day",
-      description: "Displays TASE end of day data for specific symbols across a date range with interactive table visualization.",
-      inputSchema: getEndOfDaySymbolsSchema,
+      description: "Displays TASE end of day data for the user's portfolio symbols across a date range with interactive table visualization.",
+      inputSchema: {
+        dateFrom: z.string().optional().describe("Start date in YYYY-MM-DD format. If not provided, defaults to the last available trading day."),
+        dateTo: z.string().optional().describe("End date in YYYY-MM-DD format. If not provided, defaults to the last available trading day."),
+      },
       _meta: { ui: { resourceUri: endOfDaySymbolsResourceUri } },
     },
-    async (args): Promise<CallToolResult> => {
-      const data = await providers.fetchEndOfDaySymbols(args.symbols, args.dateFrom, args.dateTo);
+    async (args, extra): Promise<CallToolResult> => {
+      const { symbols, error } = await getUserPositionSymbols(extra);
+      if (error) return { content: [{ type: "text", text: JSON.stringify({ error }) }] };
+      if (symbols.length === 0) return { content: [{ type: "text", text: JSON.stringify({ error: "No positions found" }) }] };
+      const data = await providers.fetchEndOfDaySymbols(symbols, args.dateFrom, args.dateTo);
       return formatEndOfDaySymbolsResult(data);
     },
   );
@@ -377,17 +397,19 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     "show-my-position-candlestick-widget",
     {
       title: "Show My Position Candlestick",
-      description: "Displays a multi-symbol candlestick view: sidebar with symbol table (Last, Chg, Chg%) and a chart area. Click a symbol to view its candlestick chart.",
+      description: "Displays a multi-symbol candlestick view for the user's portfolio: sidebar with symbol table (Last, Chg, Chg%) and a chart area. Click a symbol to view its candlestick chart.",
       inputSchema: {
-        symbols: z.array(z.string()).describe("List of stock symbols to display (e.g. ['TEVA', 'LUMI'])"),
         dateFrom: z.string().describe("Start date in YYYY-MM-DD format"),
         dateTo: z.string().optional().describe("End date in YYYY-MM-DD format"),
       },
       _meta: { ui: { resourceUri: symbolsCandlestickResourceUri } },
     },
-    async (args): Promise<CallToolResult> => {
+    async (args, extra): Promise<CallToolResult> => {
+      const { symbols, error } = await getUserPositionSymbols(extra);
+      if (error) return { content: [{ type: "text", text: JSON.stringify({ error }) }] };
+      if (symbols.length === 0) return { content: [{ type: "text", text: JSON.stringify({ error: "No positions found" }) }] };
       // Always fetch sidebar data using the last trade date (args.dateTo may be today or a non-trading day)
-      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols);
+      const data = await providers.fetchEndOfDaySymbolsByDate(symbols);
       return {
         content: [
           {
@@ -410,16 +432,18 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     "get-my-position-period-data",
     {
       title: "Get My Position Period Data",
-      description: "Returns last price and period change % for a list of symbols. Used by the my-position candlestick widget sidebar.",
+      description: "Returns last price and period change % for the user's portfolio symbols. Used by the my-position candlestick widget sidebar.",
       inputSchema: {
-        symbols: z.array(z.string()).describe("List of stock symbols"),
         tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format (default: last trading day)"),
         period: z.enum(["1D", "1W", "1M", "3M"]).optional().describe("Change period: 1D=daily, 1W=weekly (5 days), 1M=monthly (21 days), 3M=quarterly (63 days). Default: 1D"),
       },
       _meta: { ui: { visibility: ["model", "app"] } },
     },
-    async (args): Promise<CallToolResult> => {
-      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.tradeDate, args.period as HeatmapPeriod | undefined);
+    async (args, extra): Promise<CallToolResult> => {
+      const { symbols, error } = await getUserPositionSymbols(extra);
+      if (error) return { content: [{ type: "text", text: JSON.stringify({ error }) }] };
+      if (symbols.length === 0) return { content: [{ type: "text", text: JSON.stringify({ error: "No positions found" }) }] };
+      const data = await providers.fetchEndOfDaySymbolsByDate(symbols, args.tradeDate, args.period as HeatmapPeriod | undefined);
       return {
         content: [{
           type: "text",
@@ -516,16 +540,18 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     "get-my-position-table-data",
     {
       title: "Get My Position Table Data",
-      description: "Returns EOD data for a user's portfolio symbols. Period controls the change %: 1D=daily, 1W=weekly (5 trading days), 1M=monthly (21 trading days), 3M=quarterly (63 trading days). Data only - use show-my-position-table-widget for visualization.",
+      description: "Returns EOD data for the user's portfolio symbols. Period controls the change %: 1D=daily, 1W=weekly (5 trading days), 1M=monthly (21 trading days), 3M=quarterly (63 trading days). Data only - use show-my-position-table-widget for visualization.",
       inputSchema: {
-        symbols: z.array(z.string()).describe("List of portfolio symbols (e.g. ['TEVA', 'LUMI'])"),
         tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format. If not provided, returns the last available trading day."),
         period: z.enum(["1D", "1W", "1M", "3M"]).optional().describe("Change period: 1D=daily, 1W=weekly (5 days), 1M=monthly (21 days), 3M=quarterly (63 days). Default: 1D"),
       },
       _meta: { ui: { visibility: ["model", "app"] } },
     },
-    async (args): Promise<CallToolResult> => {
-      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.tradeDate, args.period as HeatmapPeriod | undefined);
+    async (args, extra): Promise<CallToolResult> => {
+      const { symbols, error } = await getUserPositionSymbols(extra);
+      if (error) return { content: [{ type: "text", text: JSON.stringify({ error }) }] };
+      if (symbols.length === 0) return { content: [{ type: "text", text: JSON.stringify({ error: "No positions found" }) }] };
+      const data = await providers.fetchEndOfDaySymbolsByDate(symbols, args.tradeDate, args.period as HeatmapPeriod | undefined);
       return {
         content: [{
           type: "text",
@@ -540,15 +566,17 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     "show-my-position-table-widget",
     {
       title: "Show My Positions Table",
-      description: "Displays a user's portfolio symbols as an interactive EOD table with sortable columns (Symbol, Company, Close, Change%, Turnover, RSI, EZ) and period selector (1D/1W/1M/3M).",
+      description: "Displays the user's portfolio symbols as an interactive EOD table with sortable columns (Symbol, Company, Close, Change%, Turnover, RSI, EZ) and period selector (1D/1W/1M/3M).",
       inputSchema: {
-        symbols: z.array(z.string()).describe("List of portfolio symbols (e.g. ['TEVA', 'LUMI'])"),
         tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format. If not provided, returns the last available trading day."),
       },
       _meta: { ui: { resourceUri: myPositionResourceUri } },
     },
-    async (args): Promise<CallToolResult> => {
-      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.tradeDate, "1D");
+    async (args, extra): Promise<CallToolResult> => {
+      const { symbols, error } = await getUserPositionSymbols(extra);
+      if (error) return { content: [{ type: "text", text: JSON.stringify({ error }) }] };
+      if (symbols.length === 0) return { content: [{ type: "text", text: JSON.stringify({ error: "No positions found" }) }] };
+      const data = await providers.fetchEndOfDaySymbolsByDate(symbols, args.tradeDate, "1D");
       return {
         content: [{
           type: "text",
