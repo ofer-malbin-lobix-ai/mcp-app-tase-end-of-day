@@ -8,7 +8,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { createColumnHelper } from "@tanstack/react-table";
 import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { DataTable } from "./components/DataTable";
+import { DataTable } from "../components/DataTable";
 import styles from "./market-end-of-day-widget.module.css";
 
 interface StockData {

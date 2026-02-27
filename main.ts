@@ -23,11 +23,11 @@ import { createSubscriptionRouter } from "./src/paypal/subscription-routes.js";
 import { checkSubscription } from "./src/paypal/subscription-check.js";
 import { generateSubscribeToken } from "./src/paypal/subscribe-token.js";
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
-import { createFetchEndOfDayFromTaseDataHubRouter } from "./src/fetch-end-of-day-from-tase-data-hub.js";
+import { createFetchEndOfDayFromTaseDataHubRouter } from "./src/tase-data-hub/fetch-end-of-day-from-tase-data-hub.js";
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
-import { createFetchSymbolsFromTaseDataHubRouter } from "./src/fetch-symbols-from-tase-data-hub.js";
+import { createFetchSymbolsFromTaseDataHubRouter } from "./src/tase-data-hub/fetch-symbols-from-tase-data-hub.js";
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
-import { dbProviders } from "./src/db-api.js";
+import { dbProviders } from "./src/db/db-api.js";
 
 /**
  * Starts an MCP server with Streamable HTTP transport in stateless mode.

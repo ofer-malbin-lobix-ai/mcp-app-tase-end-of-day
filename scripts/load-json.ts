@@ -5,7 +5,7 @@
  */
 import { createReadStream } from "node:fs";
 import { createRequire } from "node:module";
-import { prisma } from "../src/db.js";
+import { prisma } from "../src/db/db.js";
 
 const require = createRequire(import.meta.url);
 const { parser } = require("stream-json");

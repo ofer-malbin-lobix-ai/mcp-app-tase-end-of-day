@@ -1,5 +1,5 @@
 import { prisma } from "./db.js";
-import { Prisma } from "./generated/prisma/client.js";
+import { Prisma } from "../generated/prisma/client.js";
 import type {
   StockData,
   EndOfDayResult,
@@ -12,7 +12,7 @@ import type {
   SectorHeatmapResponse,
   SymbolHeatmapItem,
   TaseDataProviders,
-} from "./types.js";
+} from "../types.js";
 
 // Fields to select for StockData (excludes isin, securityId, etc. not in StockData)
 const EOD_SELECT = {

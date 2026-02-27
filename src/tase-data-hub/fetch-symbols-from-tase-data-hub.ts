@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { prisma } from "./db.js";
+import { prisma } from "../db/db.js";
 
 const TASE_DATA_HUB_SYMBOLS_URL =
   "https://datawise.tase.co.il/v1/basic-securities/trade-securities-list";

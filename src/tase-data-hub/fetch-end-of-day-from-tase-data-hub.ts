@@ -1,8 +1,8 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import cron from "node-cron";
-import { prisma } from "./db.js";
-import { updateTradingDayIndicators } from "./indicators.js";
+import { prisma } from "../db/db.js";
+import { updateTradingDayIndicators } from "../db/indicators.js";
 import { fetchAndStoreSymbols } from "./fetch-symbols-from-tase-data-hub.js";
 
 const TASE_DATA_HUB_EOD_URL =
