@@ -197,6 +197,9 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
   const dashboardResourceUri = "ui://tase-end-of-day/market-dashboard-widget-v3.html";
   const subscriptionResourceUri = "ui://tase-end-of-day/tase-end-of-day-landing-widget-v3.html";
   const myPositionsManagerResourceUri = "ui://tase-end-of-day/my-positions-manager-widget-v1.html";
+  const symbolsEndOfDayResourceUri = "ui://tase-end-of-day/symbols-end-of-day-widget-v1.html";
+  const symbolsCandlestickWidgetResourceUri = "ui://tase-end-of-day/symbols-candlestick-widget-v1.html";
+  const symbolsTableResourceUri = "ui://tase-end-of-day/symbols-table-widget-v1.html";
 
   // Data-only tool: Get TASE end of day data
   registerAppTool(server,
@@ -555,6 +558,139 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     },
   );
 
+  // Data-only tool: Get Symbols End of Day data
+  registerAppTool(server,
+    "get-symbols-end-of-day-data",
+    {
+      title: "Get Symbols End of Day Data",
+      description: "Returns TASE end of day data for specific symbols across a date range. Data only - use show-symbols-end-of-day-widget for visualization.",
+      inputSchema: getEndOfDaySymbolsSchema,
+      _meta: { ui: { visibility: ["model", "app"] } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const data = await providers.fetchEndOfDaySymbols(args.symbols, args.dateFrom, args.dateTo);
+      return formatEndOfDaySymbolsResult(data);
+    },
+  );
+
+  // UI tool: Show Symbols End of Day data with interactive table
+  registerAppTool(server,
+    "show-symbols-end-of-day-widget",
+    {
+      title: "Show Symbols End of Day",
+      description: "Displays TASE end of day data for specific symbols across a date range with interactive table visualization.",
+      inputSchema: getEndOfDaySymbolsSchema,
+      _meta: { ui: { resourceUri: symbolsEndOfDayResourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const data = await providers.fetchEndOfDaySymbols(args.symbols, args.dateFrom, args.dateTo);
+      return formatEndOfDaySymbolsResult(data);
+    },
+  );
+
+  // Data-only tool: Get symbols sidebar data with period change
+  registerAppTool(server,
+    "get-symbols-period-data",
+    {
+      title: "Get Symbols Period Data",
+      description: "Returns last price and period change % for a list of symbols. Used by the symbols candlestick widget sidebar.",
+      inputSchema: {
+        symbols: z.array(z.string()).describe("List of stock symbols"),
+        tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format (default: last trading day)"),
+        period: z.enum(["1D", "1W", "1M", "3M"]).optional().describe("Change period: 1D=daily, 1W=weekly (5 days), 1M=monthly (21 days), 3M=quarterly (63 days). Default: 1D"),
+      },
+      _meta: { ui: { visibility: ["model", "app"] } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.tradeDate, args.period as HeatmapPeriod | undefined);
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ symbols: data.symbols, count: data.count, dateFrom: data.dateFrom, dateTo: data.dateTo, items: data.items }),
+        }],
+      };
+    },
+  );
+
+  // UI tool: Show Symbols Candlestick (sidebar table + chart)
+  registerAppTool(server,
+    "show-symbols-candlestick-widget",
+    {
+      title: "Show Symbols Candlestick",
+      description: "Displays a multi-symbol candlestick view: sidebar with symbol table (Last, Chg, Chg%) and a chart area. Click a symbol to view its candlestick chart.",
+      inputSchema: {
+        symbols: z.array(z.string()).describe("List of stock symbols to display (e.g. ['TEVA', 'LUMI'])"),
+        dateFrom: z.string().describe("Start date in YYYY-MM-DD format"),
+        dateTo: z.string().optional().describe("End date in YYYY-MM-DD format"),
+      },
+      _meta: { ui: { resourceUri: symbolsCandlestickWidgetResourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              symbols: data.symbols,
+              count: data.count,
+              dateFrom: args.dateFrom,
+              dateTo: args.dateTo ?? data.dateTo,
+              items: data.items,
+            }),
+          },
+        ],
+      };
+    },
+  );
+
+  // Data-only tool: Get Symbols Table data
+  registerAppTool(server,
+    "get-symbols-table-data",
+    {
+      title: "Get Symbols Table Data",
+      description: "Returns EOD data for specified symbols. Period controls the change %: 1D=daily, 1W=weekly (5 trading days), 1M=monthly (21 trading days), 3M=quarterly (63 trading days). Data only - use show-symbols-table-widget for visualization.",
+      inputSchema: {
+        symbols: z.array(z.string()).describe("List of stock symbols (e.g. ['TEVA', 'LUMI'])"),
+        tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format. If not provided, returns the last available trading day."),
+        period: z.enum(["1D", "1W", "1M", "3M"]).optional().describe("Change period: 1D=daily, 1W=weekly (5 days), 1M=monthly (21 days), 3M=quarterly (63 days). Default: 1D"),
+      },
+      _meta: { ui: { visibility: ["model", "app"] } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.tradeDate, args.period as HeatmapPeriod | undefined);
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ symbols: data.symbols, count: data.count, dateFrom: data.dateFrom, dateTo: data.dateTo, items: data.items }),
+        }],
+      };
+    },
+  );
+
+  // UI tool: Show Symbols Table widget
+  registerAppTool(server,
+    "show-symbols-table-widget",
+    {
+      title: "Show Symbols Table",
+      description: "Displays specified symbols as an interactive EOD table with sortable columns (Symbol, Company, Close, Change%, Turnover, RSI, EZ) and period selector (1D/1W/1M/3M).",
+      inputSchema: {
+        symbols: z.array(z.string()).describe("List of stock symbols (e.g. ['TEVA', 'LUMI'])"),
+        tradeDate: z.string().optional().describe("Trade date in YYYY-MM-DD format. If not provided, returns the last available trading day."),
+      },
+      _meta: { ui: { resourceUri: symbolsTableResourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const data = await providers.fetchEndOfDaySymbolsByDate(args.symbols, args.tradeDate, "1D");
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ symbols: data.symbols, count: data.count, dateFrom: data.dateFrom, dateTo: data.dateTo, items: data.items }),
+        }],
+      };
+    },
+  );
+
   // Data tool: Get user positions from Clerk privateMetadata
   registerAppTool(server,
     "get-user-positions",
@@ -769,6 +905,33 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "my-positions-manager-widget.html"), "utf-8");
       return { contents: [{ uri: myPositionsManagerResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
+    },
+  );
+
+  registerAppResource(server,
+    symbolsEndOfDayResourceUri, symbolsEndOfDayResourceUri,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(path.join(DIST_DIR, "symbols-end-of-day-widget.html"), "utf-8");
+      return { contents: [{ uri: symbolsEndOfDayResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
+    },
+  );
+
+  registerAppResource(server,
+    symbolsCandlestickWidgetResourceUri, symbolsCandlestickWidgetResourceUri,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(path.join(DIST_DIR, "symbols-candlestick-widget.html"), "utf-8");
+      return { contents: [{ uri: symbolsCandlestickWidgetResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
+    },
+  );
+
+  registerAppResource(server,
+    symbolsTableResourceUri, symbolsTableResourceUri,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(path.join(DIST_DIR, "symbols-table-widget.html"), "utf-8");
+      return { contents: [{ uri: symbolsTableResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
