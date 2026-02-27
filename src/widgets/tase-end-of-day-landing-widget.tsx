@@ -198,7 +198,46 @@ function SubscriptionInner({ data, hostContext, app }: SubscriptionInnerProps) {
         </div>
       </div>
 
-      <div className={styles.companyArea}>
+      {connectedUrl ? (
+        <div className={styles.cta}>
+          <button
+            className={styles.subscribeButton}
+            onClick={async () => {
+              try {
+                const result = await app.openLink({ url: connectedUrl });
+                if (result?.isError) {
+                  await navigator.clipboard.writeText(connectedUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }
+              } catch {
+                try {
+                  await navigator.clipboard.writeText(connectedUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch {
+                  const el = document.getElementById("subscribe-url");
+                  if (el) {
+                    const range = document.createRange();
+                    range.selectNodeContents(el);
+                    const sel = window.getSelection();
+                    sel?.removeAllRanges();
+                    sel?.addRange(range);
+                  }
+                }
+              }
+            }}
+          >
+            {copied ? "Copied!" : data?.needsSubscription ? "Subscribe Now" : "Subscription"}
+          </button>
+        </div>
+      ) : (
+        <div className={styles.notConnected}>
+          <p>Connect to the TASE Data Hub server to subscribe and access all tools.</p>
+        </div>
+      )}
+
+      <footer className={styles.footer}>
         <button
           className={styles.companyLink}
           onClick={async () => {
@@ -216,47 +255,7 @@ function SubscriptionInner({ data, hostContext, app }: SubscriptionInnerProps) {
         >
           www.lobix.ai
         </button>
-
-        {connectedUrl ? (
-          <div className={styles.cta}>
-            <button
-              className={styles.subscribeButton}
-              onClick={async () => {
-                try {
-                  const result = await app.openLink({ url: connectedUrl });
-                  if (result?.isError) {
-                    await navigator.clipboard.writeText(connectedUrl);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }
-                } catch {
-                  try {
-                    await navigator.clipboard.writeText(connectedUrl);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  } catch {
-                    const el = document.getElementById("subscribe-url");
-                    if (el) {
-                      const range = document.createRange();
-                      range.selectNodeContents(el);
-                      const sel = window.getSelection();
-                      sel?.removeAllRanges();
-                      sel?.addRange(range);
-                    }
-                  }
-                }
-              }}
-            >
-              {copied ? "Copied!" : data?.needsSubscription ? "Subscribe Now" : "Subscription"}
-            </button>
-            <span className={styles.pricing}>Plans start at \u20AA35/month</span>
-          </div>
-        ) : (
-          <div className={styles.notConnected}>
-            <p>Connect to the TASE Data Hub server to subscribe and access all tools.</p>
-          </div>
-        )}
-      </div>
+      </footer>
     </main>
   );
 }
