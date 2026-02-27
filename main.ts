@@ -23,9 +23,9 @@ import { createSubscriptionRouter } from "./src/paypal/subscription-routes.js";
 import { checkSubscription } from "./src/paypal/subscription-check.js";
 import { generateSubscribeToken } from "./src/paypal/subscribe-token.js";
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
-import { createFetchEodRouter } from "./src/fetch-eod.js";
+import { createFetchEndOfDayFromTaseDataHubRouter } from "./src/fetch-end-of-day-from-tase-data-hub.js";
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
-import { createFetchSymbolsRouter } from "./src/fetch-symbols.js";
+import { createFetchSymbolsFromTaseDataHubRouter } from "./src/fetch-symbols-from-tase-data-hub.js";
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
 import { dbProviders } from "./src/db-api.js";
 
@@ -68,11 +68,11 @@ export async function startStreamableHTTPServer(
   // Mount subscription routes (requires Clerk auth)
   app.use(createSubscriptionRouter());
 
-  // Mount fetch-eod route (backend API, no auth — callable by cron or direct URL)
-  app.use(createFetchEodRouter());
+  // Mount fetch-end-of-day-from-tase-data-hub route (backend API, no auth — callable by cron or direct URL)
+  app.use(createFetchEndOfDayFromTaseDataHubRouter());
 
-  // Mount fetch-symbols route (backend API, no auth — upserts TaseSymbol metadata)
-  app.use(createFetchSymbolsRouter());
+  // Mount fetch-symbols-from-tase-data-hub route (backend API, no auth — upserts TaseSymbol metadata)
+  app.use(createFetchSymbolsFromTaseDataHubRouter());
 
   // Helper to extract userId from request (works with mcpAuthClerk)
   const resolveUserId = (req: Request): string | null => {

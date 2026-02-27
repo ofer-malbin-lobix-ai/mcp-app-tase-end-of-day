@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import cron from "node-cron";
 import { prisma } from "./db.js";
 import { updateTradingDayIndicators } from "./indicators.js";
-import { fetchAndStoreSymbols } from "./fetch-symbols.js";
+import { fetchAndStoreSymbols } from "./fetch-symbols-from-tase-data-hub.js";
 
 const TASE_DATA_HUB_EOD_URL =
   "https://datawise.tase.co.il/v1/securities/trading/eod/seven-days/by-date";
@@ -51,7 +51,7 @@ async function fetchAndStoreEod(date: string): Promise<{ fetched: number; create
   }
 
   const url = `${TASE_DATA_HUB_EOD_URL}?date=${date}`;
-  console.error(`[fetch-eod] Fetching from: ${url}`);
+  console.error(`[fetch-end-of-day-from-tase-data-hub] Fetching from: ${url}`);
 
   const response = await fetch(url, {
     method: "GET",
@@ -68,7 +68,7 @@ async function fetchAndStoreEod(date: string): Promise<{ fetched: number; create
   const data = (await response.json()) as TaseDataHubEodResponse;
   const items = data.securitiesEndOfDayTradingData.result;
 
-  console.error(`[fetch-eod] Received ${items.length} items for date ${date}`);
+  console.error(`[fetch-end-of-day-from-tase-data-hub] Received ${items.length} items for date ${date}`);
 
   const rows = items.map((item) => ({
     tradeDate: new Date(item.tradeDate.split("T")[0] as string),
@@ -100,7 +100,7 @@ async function fetchAndStoreEod(date: string): Promise<{ fetched: number; create
     skipDuplicates: true,
   });
 
-  console.error(`[fetch-eod] Created ${result.count} rows for date ${date} (${items.length - result.count} duplicates skipped)`);
+  console.error(`[fetch-end-of-day-from-tase-data-hub] Created ${result.count} rows for date ${date} (${items.length - result.count} duplicates skipped)`);
   return { fetched: items.length, created: result.count };
 }
 
@@ -120,20 +120,20 @@ async function runEodPipeline(date: string): Promise<{ fetched: number; created:
 }
 
 /**
- * Creates an Express router with the /api/fetch-eod endpoint.
- * GET /api/fetch-eod?date=YYYY-MM-DD
+ * Creates an Express router with the /api/fetch-end-of-day-from-tase-data-hub endpoint.
+ * GET /api/fetch-end-of-day-from-tase-data-hub?date=YYYY-MM-DD
  * If no date is provided, defaults to today (Israel time).
  */
-export function createFetchEodRouter(): Router {
+export function createFetchEndOfDayFromTaseDataHubRouter(): Router {
   const router = Router();
 
-  router.get("/api/fetch-eod", async (req: Request, res: Response) => {
+  router.get("/api/fetch-end-of-day-from-tase-data-hub", async (req: Request, res: Response) => {
     try {
       const date = (req.query.date as string) ?? getTodayDateIL();
       const result = await fetchAndStoreEod(date);
       res.json({ status: "ok", date, ...result });
     } catch (error) {
-      console.error("[fetch-eod] Error:", error);
+      console.error("[fetch-end-of-day-from-tase-data-hub] Error:", error);
       res.status(500).json({
         status: "error",
         message: error instanceof Error ? error.message : String(error),

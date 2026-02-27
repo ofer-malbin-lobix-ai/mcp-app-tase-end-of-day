@@ -35,7 +35,7 @@ export async function fetchAndStoreSymbols(date: string): Promise<{ fetched: num
 
   const [year, month, day] = date.split("-");
   const url = `${TASE_DATA_HUB_SYMBOLS_URL}/${year}/${month}/${day}`;
-  console.error(`[fetch-symbols] Fetching from: ${url}`);
+  console.error(`[fetch-symbols-from-tase-data-hub] Fetching from: ${url}`);
 
   const response = await fetch(url, {
     method: "GET",
@@ -53,7 +53,7 @@ export async function fetchAndStoreSymbols(date: string): Promise<{ fetched: num
   const data = (await response.json()) as TaseDataHubSymbolsResponse;
   const items = data.tradeSecuritiesList.result;
 
-  console.error(`[fetch-symbols] Received ${items.length} symbols for date ${date}`);
+  console.error(`[fetch-symbols-from-tase-data-hub] Received ${items.length} symbols for date ${date}`);
 
   // The basic-securities API returns Hebrew ticker symbols (e.g. "IBI.ס183"),
   // but TaseSecuritiesEndOfDayTradingData uses Latin symbols (e.g. "IBI.F183").
@@ -65,7 +65,7 @@ export async function fetchAndStoreSymbols(date: string): Promise<{ fetched: num
   `;
   const securityIdToSymbol = new Map(eodRows.map((r) => [r.securityId, r.symbol]));
 
-  console.error(`[fetch-symbols] EOD table has ${securityIdToSymbol.size} distinct securityIds`);
+  console.error(`[fetch-symbols-from-tase-data-hub] EOD table has ${securityIdToSymbol.size} distinct securityIds`);
 
   // Map API items to Latin symbols; skip items with no EOD match
   const values = items
@@ -81,7 +81,7 @@ export async function fetchAndStoreSymbols(date: string): Promise<{ fetched: num
     }))
     .filter((v): v is typeof v & { symbol: string } => v.symbol != null);
 
-  console.error(`[fetch-symbols] ${values.length} items matched to Latin symbols`);
+  console.error(`[fetch-symbols-from-tase-data-hub] ${values.length} items matched to Latin symbols`);
 
   if (values.length === 0) {
     return { fetched: items.length, upserted: 0 };
@@ -126,19 +126,19 @@ export async function fetchAndStoreSymbols(date: string): Promise<{ fetched: num
     prisma.$executeRawUnsafe(sql, ...params),
   ]);
 
-  console.error(`[fetch-symbols] Upserted ${values.length} symbols with Latin symbols`);
+  console.error(`[fetch-symbols-from-tase-data-hub] Upserted ${values.length} symbols with Latin symbols`);
   return { fetched: items.length, upserted: values.length };
 }
 
 /**
- * Creates an Express router with the /api/fetch-symbols endpoint.
- * GET /api/fetch-symbols?date=YYYY-MM-DD
+ * Creates an Express router with the /api/fetch-symbols-from-tase-data-hub endpoint.
+ * GET /api/fetch-symbols-from-tase-data-hub?date=YYYY-MM-DD
  * If no date is provided, defaults to today (Israel time).
  */
-export function createFetchSymbolsRouter(): Router {
+export function createFetchSymbolsFromTaseDataHubRouter(): Router {
   const router = Router();
 
-  router.get("/api/fetch-symbols", async (req: Request, res: Response) => {
+  router.get("/api/fetch-symbols-from-tase-data-hub", async (req: Request, res: Response) => {
     try {
       const date =
         (req.query.date as string) ??
@@ -146,7 +146,7 @@ export function createFetchSymbolsRouter(): Router {
       const result = await fetchAndStoreSymbols(date);
       res.json({ status: "ok", date, ...result });
     } catch (error) {
-      console.error("[fetch-symbols] Error:", error);
+      console.error("[fetch-symbols-from-tase-data-hub] Error:", error);
       res.status(500).json({
         status: "error",
         message: error instanceof Error ? error.message : String(error),
