@@ -108,10 +108,10 @@ function getTodayDateIL(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 }
 
-async function runEodPipeline(date: string): Promise<{ fetched: number; created: number; updated: number; symbolsUpserted: number }> {
+async function runEndOfDayPipeline(date: string): Promise<{ fetched: number; created: number; updated: number; symbolsUpserted: number }> {
   const eodResult = await fetchAndStoreEod(date);
   if (eodResult.created === 0) {
-    console.error(`[run-eod-pipeline] No new rows for ${date}, skipping indicators and symbols update`);
+    console.error(`[run-end-of-day-pipeline] No new rows for ${date}, skipping indicators and symbols update`);
     return { ...eodResult, updated: 0, symbolsUpserted: 0 };
   }
   const indicatorsResult = await updateTradingDayIndicators({ tradeDate: date, marketType: "STOCK" });
@@ -141,13 +141,13 @@ export function createFetchEndOfDayFromTaseDataHubRouter(): Router {
     }
   });
 
-  router.get("/api/run-eod-pipeline", async (req: Request, res: Response) => {
+  router.get("/api/run-end-of-day-pipeline", async (req: Request, res: Response) => {
     try {
       const date = (req.query.date as string) ?? getTodayDateIL();
-      const result = await runEodPipeline(date);
+      const result = await runEndOfDayPipeline(date);
       res.json({ status: "ok", date, ...result });
     } catch (error) {
-      console.error("[run-eod-pipeline] Error:", error);
+      console.error("[run-end-of-day-pipeline] Error:", error);
       res.status(500).json({
         status: "error",
         message: error instanceof Error ? error.message : String(error),
@@ -175,7 +175,7 @@ export function createFetchEndOfDayFromTaseDataHubRouter(): Router {
       const date = getTodayDateIL();
       console.error(`[cron] Running EOD pipeline for ${date}`);
       try {
-        const result = await runEodPipeline(date);
+        const result = await runEndOfDayPipeline(date);
         console.error(`[cron] Done: fetched=${result.fetched}, created=${result.created}, updated=${result.updated}, symbolsUpserted=${result.symbolsUpserted}`);
       } catch (error) {
         console.error("[cron] Error:", error);
