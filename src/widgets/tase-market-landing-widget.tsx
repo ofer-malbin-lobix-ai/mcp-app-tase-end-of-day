@@ -35,20 +35,20 @@ const TOOL_GROUPS = [
   {
     title: "Market",
     tools: [
-      { icon: "\u{1F4CA}", name: "Market Dashboard", description: "Single-page overview combining market spirit, top movers, and uptrend count", prompt: "call show-market-dashboard-widget" },
-      { icon: "\u{1F6A6}", name: "Market Spirit", description: "Traffic light indicator for market conditions", prompt: "call show-market-spirit-widget" },
-      { icon: "\u{1F4C8}", name: "Market End of Day", description: "Full market data with prices, volume, and technical indicators", prompt: "call show-market-end-of-day-widget" },
-      { icon: "\u{2B06}\u{FE0F}", name: "Market Uptrend Symbols", description: "Symbols in uptrend with EZ values", prompt: "call show-market-uptrend-symbols-widget" },
-      { icon: "\u{1F5FA}\u{FE0F}", name: "Market Sector Heatmap", description: "Treemap heatmap by sector, sub-sector, and symbol", prompt: "call show-market-sector-heatmap-widget" },
+      { icon: "\u{1F4CA}", name: "Market Dashboard", description: "Single-page overview combining market spirit, top movers, and uptrend count", toolName: "show-market-dashboard-widget" },
+      { icon: "\u{1F6A6}", name: "Market Spirit", description: "Traffic light indicator for market conditions", toolName: "show-market-spirit-widget" },
+      { icon: "\u{1F4C8}", name: "Market End of Day", description: "Full market data with prices, volume, and technical indicators", toolName: "show-market-end-of-day-widget" },
+      { icon: "\u{2B06}\u{FE0F}", name: "Market Uptrend Symbols", description: "Symbols in uptrend with EZ values", toolName: "show-market-uptrend-symbols-widget" },
+      { icon: "\u{1F5FA}\u{FE0F}", name: "Market Sector Heatmap", description: "Treemap heatmap by sector, sub-sector, and symbol", toolName: "show-market-sector-heatmap-widget" },
     ],
   },
   {
     title: "My Position",
     tools: [
-      { icon: "\u{1F4CB}", name: "My Positions Manager", description: "Add, edit, and delete portfolio positions", prompt: "call show-my-positions-manager-widget" },
-      { icon: "\u{1F4CA}", name: "My Position Table", description: "Portfolio EOD table with period selector", prompt: "call show-my-position-table-widget" },
-      { icon: "\u{1F4C8}", name: "My Position End of Day", description: "Portfolio data across date ranges", prompt: "call show-my-position-end-of-day-widget" },
-      { icon: "\u{1F56F}\u{FE0F}", name: "My Position Candlestick", description: "Multi-symbol candlestick with sidebar", prompt: "call show-my-position-candlestick-widget" },
+      { icon: "\u{1F4CB}", name: "My Positions Manager", description: "Add, edit, and delete portfolio positions", toolName: "show-my-positions-manager-widget" },
+      { icon: "\u{1F4CA}", name: "My Position Table", description: "Portfolio EOD table with period selector", toolName: "show-my-position-table-widget" },
+      { icon: "\u{1F4C8}", name: "My Position End of Day", description: "Portfolio data across date ranges", toolName: "show-my-position-end-of-day-widget" },
+      { icon: "\u{1F56F}\u{FE0F}", name: "My Position Candlestick", description: "Multi-symbol candlestick with sidebar", toolName: "show-my-position-candlestick-widget" },
     ],
   },
   {
@@ -194,12 +194,16 @@ function SubscriptionInner({ data, hostContext, app }: SubscriptionInnerProps) {
               className={styles.featureCard}
               onClick={async () => {
                 try {
-                  await app.sendMessage({
-                    role: "user",
-                    content: [{ type: "text", text: tool.prompt }],
-                  });
+                  if ("toolName" in tool) {
+                    await app.callServerTool({ name: tool.toolName });
+                  } else {
+                    await app.sendMessage({
+                      role: "user",
+                      content: [{ type: "text", text: tool.prompt }],
+                    });
+                  }
                 } catch (e) {
-                  console.error("sendMessage failed:", e);
+                  console.error("Tool call failed:", e);
                 }
               }}
             >
