@@ -166,7 +166,7 @@ async function screenshotDesktop(name) {
 async function testMarketEndOfDay(page) {
   console.log('\n🧪 Test: market-end-of-day');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show me the market end of day widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-market-end-of-day-widget`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'market-end-of-day');
@@ -176,7 +176,7 @@ async function testMarketEndOfDay(page) {
 async function testMyPositionTable(page) {
   console.log('\n🧪 Test: my-position-table');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show my position table widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-my-position-table-widget`);
   console.log('  Waiting for widget...');
   await sleep(30000);
   await screenshot(page, 'my-position-table-1d');
@@ -196,7 +196,7 @@ async function testMyPositionTable(page) {
 async function testMarketSectorHeatmap(page) {
   console.log('\n🧪 Test: market-sector-heatmap');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show me the market sector heatmap widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-market-sector-heatmap-widget`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'market-sector-heatmap-sectors');
@@ -231,7 +231,7 @@ async function testMarketSectorHeatmap(page) {
 async function testMyPositionCandlestick(page) {
   console.log('\n🧪 Test: my-position-candlestick');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show my position candlestick widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-my-position-candlestick-widget`);
   console.log('  Waiting for widget...');
   await sleep(40000);
   await screenshot(page, 'my-position-candlestick-initial');
@@ -259,7 +259,7 @@ async function testMyPositionCandlestick(page) {
 async function testMyPositionEndOfDay(page) {
   console.log('\n🧪 Test: my-position-end-of-day');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show my position end of day widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-my-position-end-of-day-widget`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'my-position-end-of-day');
@@ -287,7 +287,7 @@ async function testMyPositionEndOfDay(page) {
 async function testMyPositionsManager(page) {
   console.log('\n🧪 Test: my-positions-manager');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show my positions manager widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-my-positions-manager-widget`);
   console.log('  Waiting for widget...');
   await sleep(30000);
 
@@ -320,7 +320,7 @@ async function testMyPositionsManager(page) {
 async function testMarketSpirit(page) {
   console.log('\n🧪 Test: market-spirit');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show me the market spirit widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-market-spirit-widget`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'market-spirit');
@@ -330,7 +330,7 @@ async function testMarketSpirit(page) {
 async function testMarketUptrendSymbols(page) {
   console.log('\n🧪 Test: market-uptrend-symbols');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show me the market uptrend symbols widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-market-uptrend-symbols-widget`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'market-uptrend-symbols');
@@ -340,7 +340,7 @@ async function testMarketUptrendSymbols(page) {
 async function testMarketDashboard(page) {
   console.log('\n🧪 Test: market-dashboard');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show me the market dashboard widget`);
+  await sendMessage(page, `@${MCP_NAME} call show-market-dashboard-widget`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'market-dashboard');
@@ -350,7 +350,7 @@ async function testMarketDashboard(page) {
 async function testSymbolsEndOfDay(page) {
   console.log('\n🧪 Test: symbols-end-of-day');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show symbols end of day widget for TEVA, NICE, ESLT`);
+  await sendMessage(page, `@${MCP_NAME} call show-symbols-end-of-day-widget with symbols: ["TEVA", "NICE", "ESLT"]`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'symbols-end-of-day');
@@ -373,7 +373,7 @@ async function testSymbolsEndOfDay(page) {
 async function testSymbolsCandlestick(page) {
   console.log('\n🧪 Test: symbols-candlestick');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show symbols candlestick widget for TEVA, NICE, ESLT`);
+  await sendMessage(page, `@${MCP_NAME} call show-symbols-candlestick-widget with symbols: ["TEVA", "NICE", "ESLT"]`);
   console.log('  Waiting for widget...');
   await sleep(40000);
   await screenshot(page, 'symbols-candlestick-first');
@@ -396,7 +396,7 @@ async function testSymbolsCandlestick(page) {
 async function testSymbolsTable(page) {
   console.log('\n🧪 Test: symbols-table');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show symbols table widget for TEVA, NICE, ESLT`);
+  await sendMessage(page, `@${MCP_NAME} call show-symbols-table-widget with symbols: ["TEVA", "NICE", "ESLT"]`);
   console.log('  Waiting for widget...');
   await sleep(30000);
   await screenshot(page, 'symbols-table-1d');
@@ -416,7 +416,7 @@ async function testSymbolsTable(page) {
 async function testSymbolCandlestick(page) {
   console.log('\n🧪 Test: symbol-candlestick');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} show candlestick chart for TEVA`);
+  await sendMessage(page, `@${MCP_NAME} call show-symbol-candlestick-widget with symbol: "TEVA"`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'symbol-candlestick');
@@ -426,7 +426,7 @@ async function testSymbolCandlestick(page) {
 async function testLanding(page) {
   console.log('\n🧪 Test: landing');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} use the show-tase-market-landing-widget tool`);
+  await sendMessage(page, `@${MCP_NAME} call show-tase-market-landing-widget`);
   console.log('  Waiting for widget...');
   await sleep(30000);
   await screenshot(page, 'landing');
@@ -438,7 +438,7 @@ async function testLanding(page) {
 async function testMarketEndOfDayDesktop() {
   console.log('\n🧪 Test: market-end-of-day (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show me the market end of day widget');
+  await sendMessageDesktop('call show-market-end-of-day-widget');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-market-end-of-day');
@@ -448,7 +448,7 @@ async function testMarketEndOfDayDesktop() {
 async function testMyPositionTableDesktop() {
   console.log('\n🧪 Test: my-position-table (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show my position table widget');
+  await sendMessageDesktop('call show-my-position-table-widget');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-my-position-table');
@@ -458,7 +458,7 @@ async function testMyPositionTableDesktop() {
 async function testMarketSectorHeatmapDesktop() {
   console.log('\n🧪 Test: market-sector-heatmap (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show me the market sector heatmap widget');
+  await sendMessageDesktop('call show-market-sector-heatmap-widget');
   console.log('  Waiting for widget...');
   await sleep(40000);
   await screenshotDesktop('cd-market-sector-heatmap');
@@ -468,7 +468,7 @@ async function testMarketSectorHeatmapDesktop() {
 async function testMyPositionCandlestickDesktop() {
   console.log('\n🧪 Test: my-position-candlestick (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show my position candlestick widget');
+  await sendMessageDesktop('call show-my-position-candlestick-widget');
   console.log('  Waiting for widget...');
   await sleep(45000);
   await screenshotDesktop('cd-my-position-candlestick');
@@ -478,7 +478,7 @@ async function testMyPositionCandlestickDesktop() {
 async function testMyPositionEndOfDayDesktop() {
   console.log('\n🧪 Test: my-position-end-of-day (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show my position end of day widget');
+  await sendMessageDesktop('call show-my-position-end-of-day-widget');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-my-position-end-of-day');
@@ -488,7 +488,7 @@ async function testMyPositionEndOfDayDesktop() {
 async function testMyPositionsManagerDesktop() {
   console.log('\n🧪 Test: my-positions-manager (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show my positions manager widget');
+  await sendMessageDesktop('call show-my-positions-manager-widget');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-my-positions-manager');
@@ -498,7 +498,7 @@ async function testMyPositionsManagerDesktop() {
 async function testMarketSpiritDesktop() {
   console.log('\n🧪 Test: market-spirit (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show me the market spirit widget');
+  await sendMessageDesktop('call show-market-spirit-widget');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-market-spirit');
@@ -508,7 +508,7 @@ async function testMarketSpiritDesktop() {
 async function testMarketUptrendSymbolsDesktop() {
   console.log('\n🧪 Test: market-uptrend-symbols (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show me the market uptrend symbols widget');
+  await sendMessageDesktop('call show-market-uptrend-symbols-widget');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-market-uptrend-symbols');
@@ -518,7 +518,7 @@ async function testMarketUptrendSymbolsDesktop() {
 async function testMarketDashboardDesktop() {
   console.log('\n🧪 Test: market-dashboard (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show me the market dashboard widget');
+  await sendMessageDesktop('call show-market-dashboard-widget');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-market-dashboard');
@@ -528,7 +528,7 @@ async function testMarketDashboardDesktop() {
 async function testSymbolsEndOfDayDesktop() {
   console.log('\n🧪 Test: symbols-end-of-day (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show symbols end of day widget for TEVA, NICE, ESLT');
+  await sendMessageDesktop('call show-symbols-end-of-day-widget with symbols: ["TEVA", "NICE", "ESLT"]');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-symbols-end-of-day');
@@ -538,7 +538,7 @@ async function testSymbolsEndOfDayDesktop() {
 async function testSymbolsCandlestickDesktop() {
   console.log('\n🧪 Test: symbols-candlestick (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show symbols candlestick widget for TEVA, NICE, ESLT');
+  await sendMessageDesktop('call show-symbols-candlestick-widget with symbols: ["TEVA", "NICE", "ESLT"]');
   console.log('  Waiting for widget...');
   await sleep(45000);
   await screenshotDesktop('cd-symbols-candlestick');
@@ -548,7 +548,7 @@ async function testSymbolsCandlestickDesktop() {
 async function testSymbolsTableDesktop() {
   console.log('\n🧪 Test: symbols-table (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show symbols table widget for TEVA, NICE, ESLT');
+  await sendMessageDesktop('call show-symbols-table-widget with symbols: ["TEVA", "NICE", "ESLT"]');
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshotDesktop('cd-symbols-table');
@@ -558,7 +558,7 @@ async function testSymbolsTableDesktop() {
 async function testSymbolCandlestickDesktop() {
   console.log('\n🧪 Test: symbol-candlestick (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('show candlestick chart for TEVA');
+  await sendMessageDesktop('call show-symbol-candlestick-widget with symbol: "TEVA"');
   console.log('  Waiting for widget...');
   await sleep(40000);
   await screenshotDesktop('cd-symbol-candlestick');
@@ -568,7 +568,7 @@ async function testSymbolCandlestickDesktop() {
 async function testLandingDesktop() {
   console.log('\n🧪 Test: landing (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('use the show-tase-market-landing-widget tool');
+  await sendMessageDesktop('call show-tase-market-landing-widget');
   console.log('  Waiting for widget...');
   await sleep(30000);
   await screenshotDesktop('cd-landing');
