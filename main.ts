@@ -134,7 +134,7 @@ export async function startStreamableHTTPServer(
           ],
           _meta: {
             ui: {
-              resourceUri: "ui://tase-end-of-day/tase-market-landing-widget-v10.html",
+              resourceUri: "ui://tase-end-of-day/tase-market-landing-widget-v11.html",
             },
           },
         },

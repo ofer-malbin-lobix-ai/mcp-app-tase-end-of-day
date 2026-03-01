@@ -395,7 +395,7 @@ function IntradayAppInner({ app, data, setData, toolInput: _toolInput, hostConte
     : undefined;
 
   return (
-    <WidgetLayout title="Intraday Chart" subtitle={subtitle} app={app} hostContext={hostContext}>
+    <WidgetLayout title="Intraday Candlestick Chart" subtitle={subtitle} app={app} hostContext={hostContext}>
 
       <div className={styles.controls}>
         <label className={styles.dateLabel}>
