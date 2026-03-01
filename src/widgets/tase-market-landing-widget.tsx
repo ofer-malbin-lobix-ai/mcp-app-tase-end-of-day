@@ -59,6 +59,7 @@ const TOOL_GROUPS = [
       { icon: "\u{1F50D}", name: "Symbols End of Day", description: "Data for specific symbols across date ranges", prompt: "call show-symbols-end-of-day-widget" },
       { icon: "\u{1F56F}\u{FE0F}", name: "Symbols Candlestick", description: "Multi-symbol candlestick for any symbols", prompt: "call show-symbols-candlestick-widget" },
       { icon: "\u{1F56F}\u{FE0F}", name: "Symbol Candlestick", description: "Single-symbol candlestick chart", prompt: "call show-symbol-candlestick-widget" },
+      { icon: "\u{23F1}\u{FE0F}", name: "Symbol Intraday Candlestick", description: "Intraday candlestick chart with configurable timeframes", prompt: "call show-symbol-intraday-candlestick-widget" },
     ],
   },
 ];
