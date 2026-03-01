@@ -173,7 +173,7 @@ async function fetchAllData(
   if (args.tradeDate) callArgs.tradeDate = args.tradeDate as string;
   if (args.marketType) callArgs.marketType = args.marketType as string;
 
-  // Fetch sequentially to avoid MCP request timeouts
+  // Fetch sequentially to avoid MCP request timeouts, update state once at the end
   let spirit: MarketSpiritData | null = null;
   let eod: EndOfDayData | null = null;
   let uptrend: UptrendData | null = null;
@@ -186,21 +186,20 @@ async function fetchAllData(
     spirit = extractFromResult<MarketSpiritData>(r);
     if (!spirit) spiritError = "Failed to parse";
   } catch (e) { spiritError = "Failed to load"; }
-  setData((prev) => ({ ...prev, spirit, spiritError }));
 
   try {
     const r = await app.callServerTool({ name: "get-market-end-of-day-data", arguments: callArgs });
     eod = extractFromResult<EndOfDayData>(r);
     if (!eod) eodError = "Failed to parse";
   } catch (e) { eodError = "Failed to load"; }
-  setData((prev) => ({ ...prev, eod, eodError }));
 
   try {
     const r = await app.callServerTool({ name: "get-market-uptrend-symbols-data", arguments: callArgs });
     uptrend = extractFromResult<UptrendData>(r);
     if (!uptrend) uptrendError = "Failed to parse";
   } catch (e) { uptrendError = "Failed to load"; }
-  setData((prev) => ({ ...prev, uptrend, uptrendError }));
+
+  setData({ spirit, eod, uptrend, spiritError, eodError, uptrendError });
 }
 
 // ---------- Inner component ----------
@@ -241,16 +240,9 @@ function DashboardInner({ app, data, setData, hostContext }: DashboardInnerProps
   return (
     <WidgetLayout title="Market Dashboard" subtitle={tradeDate} app={app} hostContext={hostContext} titleClassName={styles.title}>
 
-      {!hasAnyData && (
-        <div className={styles.grid}>
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-      )}
-
-      {hasAnyData && (
+      {!hasAnyData ? (
+        <div className={styles.loading}>Waiting for data...</div>
+      ) : (<>
         <div className={styles.grid}>
           <SpiritCard spirit={data.spirit} error={data.spiritError} />
           <StatsCard eod={data.eod} error={data.eodError} />
@@ -258,7 +250,6 @@ function DashboardInner({ app, data, setData, hostContext }: DashboardInnerProps
           <GainersCard eod={data.eod} error={data.eodError} />
           <LosersCard eod={data.eod} error={data.eodError} />
         </div>
-      )}
 
       <div className={styles.controls}>
         <label className={styles.label}>
@@ -278,21 +269,12 @@ function DashboardInner({ app, data, setData, hostContext }: DashboardInnerProps
           {isRefreshing ? "Loading..." : "Refresh"}
         </button>
       </div>
+      </>)}
     </WidgetLayout>
   );
 }
 
 // ---------- Card components ----------
-
-function SkeletonCard() {
-  return (
-    <div className={styles.card}>
-      <div className={styles.skeleton} style={{ width: "40%" }} />
-      <div className={styles.skeleton} style={{ width: "80%" }} />
-      <div className={styles.skeleton} style={{ width: "60%" }} />
-    </div>
-  );
-}
 
 function SpiritCard({ spirit, error }: { spirit: MarketSpiritData | null; error: string | null }) {
   const getScoreColor = (score: MarketScore): string => {

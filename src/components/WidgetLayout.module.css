@@ -4,7 +4,6 @@
   margin: 0 auto;
   padding: 1rem;
   border-radius: var(--border-radius-lg, 12px);
-  overflow: hidden;
   background: var(--t-bg-primary);
   color: var(--t-text-primary);
 }
