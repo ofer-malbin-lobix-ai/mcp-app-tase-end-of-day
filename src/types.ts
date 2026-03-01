@@ -3,6 +3,7 @@
 export interface StockData {
   tradeDate: string;
   symbol: string;
+  securityId: number;
   change: number | null;
   turnover: number | null;
   closingPrice: number | null;

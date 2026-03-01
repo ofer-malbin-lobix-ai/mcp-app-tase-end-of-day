@@ -14,10 +14,11 @@ import type {
   TaseDataProviders,
 } from "../types.js";
 
-// Fields to select for StockData (excludes isin, securityId, etc. not in StockData)
+// Fields to select for StockData (excludes isin, etc. not in StockData)
 const EOD_SELECT = {
   tradeDate: true,
   symbol: true,
+  securityId: true,
   change: true,
   turnover: true,
   closingPrice: true,
@@ -50,6 +51,7 @@ const EOD_SELECT = {
 type DbRow = {
   tradeDate: Date;
   symbol: string;
+  securityId: number;
   change: number | null;
   turnover: bigint | null;
   closingPrice: number | null;
@@ -87,6 +89,7 @@ function rowToStockData(row: DbRow): StockData {
   return {
     tradeDate: toDateStr(row.tradeDate),
     symbol: row.symbol,
+    securityId: row.securityId,
     change: row.change,
     turnover: row.turnover != null ? Number(row.turnover) : null,
     closingPrice: row.closingPrice,
@@ -342,7 +345,7 @@ export async function fetchEndOfDaySymbolsByDate(
   `;
 
   const items: StockData[] = rows.map((r) => ({
-    tradeDate: dateStr, symbol: r.symbol,
+    tradeDate: dateStr, symbol: r.symbol, securityId: 0,
     change: r.change != null ? Number(r.change) : null,
     closingPrice: r.closingprice != null ? Number(r.closingprice) : null,
     marketCap: r.marketcap != null ? Number(r.marketcap) : null,
@@ -377,7 +380,7 @@ function aggRowToStockData(row: AggRow, symbol: string): StockData {
   const change = open != null && open !== 0 && close != null ? ((close - open) / open) * 100 : null;
   return {
     tradeDate: toDateStr(row.tradeDate),
-    symbol,
+    symbol, securityId: 0,
     openingPrice: open,
     closingPrice: close,
     high: row.high,
