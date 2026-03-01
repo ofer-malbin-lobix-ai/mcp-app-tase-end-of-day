@@ -19,6 +19,7 @@ import type {
   SymbolHeatmapItem,
   TaseDataProviders,
   UserPosition,
+  IntradayCandlestickResponse,
 } from "./src/types.js";
 
 // Re-export types for consumers
@@ -34,6 +35,9 @@ export type {
   SymbolHeatmapItem,
   TaseDataProviders,
 };
+
+// @ts-ignore — imported from source at runtime (not compiled by tsc)
+import { fetchIntraday } from "./src/tase-data-hub/fetch-intraday-from-tase-data-hub.js";
 
 // Works both from source (server.ts) and compiled (dist/server.js)
 const __filename = fileURLToPath(import.meta.url);
@@ -75,6 +79,10 @@ const getCandlestickSchema = {
   dateFrom: z.string().optional().describe("Start date in YYYY-MM-DD format"),
   dateTo: z.string().optional().describe("End date in YYYY-MM-DD format"),
   timeframe: z.enum(["1D", "3D", "1W", "1M", "3M"]).optional().describe("Candle timeframe: 1D (daily), 3D (3-day), 1W (weekly), 1M (monthly), 3M (quarterly). Defaults to 1D."),
+};
+
+const getIntradayCandlestickSchema = {
+  securityIdOrSymbol: z.union([z.string(), z.number()]).describe("Stock symbol (e.g. 'TEVA') or securityId (e.g. 22)"),
 };
 
 // Score descriptions for Market Spirit
@@ -208,6 +216,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
   const symbolsEndOfDayResourceUri = "ui://tase-end-of-day/symbols-end-of-day-widget-v3.html";
   const symbolsCandlestickWidgetResourceUri = "ui://tase-end-of-day/symbols-candlestick-widget-v3.html";
   const symbolsTableResourceUri = "ui://tase-end-of-day/symbols-table-widget-v3.html";
+  const intradayCandlestickResourceUri = "ui://tase-end-of-day/symbol-intraday-candlestick-widget-v1.html";
 
   // Data-only tool: Get TASE end of day data
   registerAppTool(server,
@@ -389,6 +398,40 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     async (args): Promise<CallToolResult> => {
       const data = await providers.fetchCandlestick(args.symbol, args.dateFrom, args.dateTo, args.timeframe as CandlestickTimeframe | undefined);
       return formatCandlestickResult(data);
+    },
+  );
+
+  // Data-only tool: Get Intraday Candlestick data
+  registerAppTool(server,
+    "get-symbol-intraday-candlestick-data",
+    {
+      title: "Get Symbol Intraday Candlestick Data",
+      description: "Returns TASE intraday trading data for a single symbol/securityId. Raw tick data for client-side candlestick aggregation. Data only - use show-symbol-intraday-candlestick-widget for visualization.",
+      inputSchema: getIntradayCandlestickSchema,
+      _meta: { ui: { visibility: ["model", "app"] } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const { symbol, securityId } = await providers.resolveSymbol(args.securityIdOrSymbol);
+      const items = await fetchIntraday(securityId);
+      const response: IntradayCandlestickResponse = { symbol, securityId, count: items.length, items };
+      return { content: [{ type: "text", text: JSON.stringify(response) }] };
+    },
+  );
+
+  // UI tool: Show Intraday Candlestick chart
+  registerAppTool(server,
+    "show-symbol-intraday-candlestick-widget",
+    {
+      title: "Show Symbol Intraday Candlestick",
+      description: "Displays an intraday candlestick chart for a single TASE symbol with configurable timeframes (1m, 3m, 5m, 10m, 30m, 1h). Auto-refreshes every 30 minutes.",
+      inputSchema: getIntradayCandlestickSchema,
+      _meta: { ui: { resourceUri: intradayCandlestickResourceUri } },
+    },
+    async (args): Promise<CallToolResult> => {
+      const { symbol, securityId } = await providers.resolveSymbol(args.securityIdOrSymbol);
+      const items = await fetchIntraday(securityId);
+      const response: IntradayCandlestickResponse = { symbol, securityId, count: items.length, items };
+      return { content: [{ type: "text", text: JSON.stringify(response) }] };
     },
   );
 
@@ -967,6 +1010,15 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "symbols-table-widget.html"), "utf-8");
       return { contents: [{ uri: symbolsTableResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
+    },
+  );
+
+  registerAppResource(server,
+    intradayCandlestickResourceUri, intradayCandlestickResourceUri,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(path.join(DIST_DIR, "symbol-intraday-candlestick-widget.html"), "utf-8");
+      return { contents: [{ uri: intradayCandlestickResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 

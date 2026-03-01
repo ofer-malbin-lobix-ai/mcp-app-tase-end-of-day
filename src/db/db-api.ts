@@ -123,7 +123,10 @@ function rowToStockData(row: DbRow): StockData {
   };
 }
 
-async function getLastTradeDate(marketType: string, before?: Date): Promise<Date> {
+async function getLastTradeDate(
+  marketType: string,
+  before?: Date,
+): Promise<Date> {
   const row = await prisma.taseSecuritiesEndOfDayTradingData.findFirst({
     where: {
       marketType,
@@ -132,18 +135,30 @@ async function getLastTradeDate(marketType: string, before?: Date): Promise<Date
     orderBy: { tradeDate: "desc" },
     select: { tradeDate: true },
   });
-  if (!row) throw new Error(`No trading data found for market type: ${marketType}`);
+  if (!row)
+    throw new Error(`No trading data found for market type: ${marketType}`);
   return row.tradeDate;
 }
 
-export async function fetchEndOfDay(marketType = "STOCK", tradeDate?: string): Promise<EndOfDayResult> {
-  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+export async function fetchEndOfDay(
+  marketType = "STOCK",
+  tradeDate?: string,
+): Promise<EndOfDayResult> {
+  const date = tradeDate
+    ? new Date(tradeDate)
+    : await getLastTradeDate(marketType);
 
   const rows = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
     where: { tradeDate: date, marketType },
     select: {
       ...EOD_SELECT,
-      taseSymbol: { select: { companyName: true, companySector: true, companySubSector: true } },
+      taseSymbol: {
+        select: {
+          companyName: true,
+          companySector: true,
+          companySubSector: true,
+        },
+      },
     },
     orderBy: { symbol: "asc" },
   });
@@ -173,18 +188,35 @@ export async function fetchEndOfDay(marketType = "STOCK", tradeDate?: string): P
  *
  * Score → Defense (0-2) | Selective (3-4) | Attack (5-6)
  */
-export async function fetchMarketSpirit(marketType = "STOCK", tradeDate?: string): Promise<MarketSpiritResponse> {
-  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+export async function fetchMarketSpirit(
+  marketType = "STOCK",
+  tradeDate?: string,
+): Promise<MarketSpiritResponse> {
+  const date = tradeDate
+    ? new Date(tradeDate)
+    : await getLastTradeDate(marketType);
   const tradeDateStr = toDateStr(date);
 
   const stocks = await prisma.taseSecuritiesEndOfDayTradingData.findMany({
     where: { tradeDate: date, marketType },
-    select: { change: true, ez: true, rsi14: true, macdHist: true, cci20: true },
+    select: {
+      change: true,
+      ez: true,
+      rsi14: true,
+      macdHist: true,
+      cci20: true,
+    },
   });
 
   const total = stocks.length;
   if (total === 0) {
-    return { tradeDate: tradeDateStr, marketType, score: null, adv: null, adLine: null };
+    return {
+      tradeDate: tradeDateStr,
+      marketType,
+      score: null,
+      adv: null,
+      adLine: null,
+    };
   }
 
   const advancing = stocks.filter((s) => (s.change ?? 0) > 0).length;
@@ -206,15 +238,22 @@ export async function fetchMarketSpirit(marketType = "STOCK", tradeDate?: string
     ORDER BY "tradeDate" ASC
   `;
 
-  const adLine = advHistory.reduce((sum, row) => sum + (Number(row.adv) || 0), 0);
+  const adLine = advHistory.reduce(
+    (sum, row) => sum + (Number(row.adv) || 0),
+    0,
+  );
 
   let scorePoints = 0;
   if (adv > 0) scorePoints++;
   if (adLine > 0) scorePoints++;
-  if (stocks.filter((s) => (s.ez ?? -Infinity) > 0).length / total > 0.5) scorePoints++;
-  if (stocks.filter((s) => (s.rsi14 ?? 0) > 50).length / total > 0.5) scorePoints++;
-  if (stocks.filter((s) => (s.macdHist ?? -Infinity) > 0).length / total > 0.5) scorePoints++;
-  if (stocks.filter((s) => (s.cci20 ?? -Infinity) > 0).length / total > 0.5) scorePoints++;
+  if (stocks.filter((s) => (s.ez ?? -Infinity) > 0).length / total > 0.5)
+    scorePoints++;
+  if (stocks.filter((s) => (s.rsi14 ?? 0) > 50).length / total > 0.5)
+    scorePoints++;
+  if (stocks.filter((s) => (s.macdHist ?? -Infinity) > 0).length / total > 0.5)
+    scorePoints++;
+  if (stocks.filter((s) => (s.cci20 ?? -Infinity) > 0).length / total > 0.5)
+    scorePoints++;
 
   const score: "Defense" | "Selective" | "Attack" =
     scorePoints <= 2 ? "Defense" : scorePoints <= 4 ? "Selective" : "Attack";
@@ -222,8 +261,13 @@ export async function fetchMarketSpirit(marketType = "STOCK", tradeDate?: string
   return { tradeDate: tradeDateStr, marketType, score, adv, adLine };
 }
 
-export async function fetchUptrendSymbols(marketType = "STOCK", tradeDate?: string): Promise<UptrendSymbolsResponse> {
-  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+export async function fetchUptrendSymbols(
+  marketType = "STOCK",
+  tradeDate?: string,
+): Promise<UptrendSymbolsResponse> {
+  const date = tradeDate
+    ? new Date(tradeDate)
+    : await getLastTradeDate(marketType);
 
   const rows = await prisma.$queryRaw<{ symbol: string; ez: number }[]>`
     SELECT symbol, ez
@@ -299,8 +343,14 @@ export async function fetchEndOfDaySymbolsByDate(
       orderBy: { symbol: "asc" },
     });
     return {
-      symbols, count: rows.length, dateFrom: dateStr, dateTo: dateStr,
-      items: rows.map((row) => ({ ...rowToStockData(row), companyName: row.taseSymbol?.companyName ?? null })),
+      symbols,
+      count: rows.length,
+      dateFrom: dateStr,
+      dateTo: dateStr,
+      items: rows.map((row) => ({
+        ...rowToStockData(row),
+        companyName: row.taseSymbol?.companyName ?? null,
+      })),
     };
   }
 
@@ -309,7 +359,12 @@ export async function fetchEndOfDaySymbolsByDate(
   const limit = N + 1;
   const symbolParam = Prisma.join(symbols);
 
-  type SidebarRow = { symbol: string; closingprice: number | null; marketcap: bigint | null; change: number | null };
+  type SidebarRow = {
+    symbol: string;
+    closingprice: number | null;
+    marketcap: bigint | null;
+    change: number | null;
+  };
 
   const rows = await prisma.$queryRaw<SidebarRow[]>`
     WITH recent_dates AS (
@@ -345,19 +400,48 @@ export async function fetchEndOfDaySymbolsByDate(
   `;
 
   const items: StockData[] = rows.map((r) => ({
-    tradeDate: dateStr, symbol: r.symbol, securityId: 0,
+    tradeDate: dateStr,
+    symbol: r.symbol,
+    securityId: 0,
     change: r.change != null ? Number(r.change) : null,
     closingPrice: r.closingprice != null ? Number(r.closingprice) : null,
     marketCap: r.marketcap != null ? Number(r.marketcap) : null,
-    turnover: null, basePrice: null, openingPrice: null, high: null, low: null,
-    changeValue: null, volume: null, minContPhaseAmount: null, listedCapital: null,
-    marketType: null, rsi14: null, macd: null, macdSignal: null, macdHist: null,
-    cci20: null, mfi14: null, turnover10: null, sma20: null, sma50: null, sma200: null,
-    stddev20: null, upperBollingerBand20: null, lowerBollingerBand20: null, ez: null,
-    companyName: null, sector: null, subSector: null,
+    turnover: null,
+    basePrice: null,
+    openingPrice: null,
+    high: null,
+    low: null,
+    changeValue: null,
+    volume: null,
+    minContPhaseAmount: null,
+    listedCapital: null,
+    marketType: null,
+    rsi14: null,
+    macd: null,
+    macdSignal: null,
+    macdHist: null,
+    cci20: null,
+    mfi14: null,
+    turnover10: null,
+    sma20: null,
+    sma50: null,
+    sma200: null,
+    stddev20: null,
+    upperBollingerBand20: null,
+    lowerBollingerBand20: null,
+    ez: null,
+    companyName: null,
+    sector: null,
+    subSector: null,
   }));
 
-  return { symbols, count: items.length, dateFrom: dateStr, dateTo: dateStr, items };
+  return {
+    symbols,
+    count: items.length,
+    dateFrom: dateStr,
+    dateTo: dateStr,
+    items,
+  };
 }
 
 // Raw row returned by aggregated SQL queries
@@ -377,10 +461,14 @@ type AggRow = {
 function aggRowToStockData(row: AggRow, symbol: string): StockData {
   const open = row.openingPrice;
   const close = row.closingPrice;
-  const change = open != null && open !== 0 && close != null ? ((close - open) / open) * 100 : null;
+  const change =
+    open != null && open !== 0 && close != null
+      ? ((close - open) / open) * 100
+      : null;
   return {
     tradeDate: toDateStr(row.tradeDate),
-    symbol, securityId: 0,
+    symbol,
+    securityId: 0,
     openingPrice: open,
     closingPrice: close,
     high: row.high,
@@ -392,12 +480,26 @@ function aggRowToStockData(row: AggRow, symbol: string): StockData {
     sma200: row.sma200,
     ez: row.ez,
     // All other fields are not meaningful for aggregated candles
-    turnover: null, basePrice: null, changeValue: null, marketCap: null,
-    minContPhaseAmount: null, listedCapital: null, marketType: null,
-    rsi14: null, macd: null, macdSignal: null, macdHist: null,
-    cci20: null, mfi14: null, turnover10: null, stddev20: null,
-    upperBollingerBand20: null, lowerBollingerBand20: null,
-    companyName: null, sector: null, subSector: null,
+    turnover: null,
+    basePrice: null,
+    changeValue: null,
+    marketCap: null,
+    minContPhaseAmount: null,
+    listedCapital: null,
+    marketType: null,
+    rsi14: null,
+    macd: null,
+    macdSignal: null,
+    macdHist: null,
+    cci20: null,
+    mfi14: null,
+    turnover10: null,
+    stddev20: null,
+    upperBollingerBand20: null,
+    lowerBollingerBand20: null,
+    companyName: null,
+    sector: null,
+    subSector: null,
   };
 }
 
@@ -443,7 +545,8 @@ async function fetchCandlestickAggregated(
     `;
   }
 
-  const truncUnit = timeframe === "1W" ? "week" : timeframe === "1M" ? "month" : "quarter";
+  const truncUnit =
+    timeframe === "1W" ? "week" : timeframe === "1M" ? "month" : "quarter";
 
   return prisma.$queryRaw<AggRow[]>`
     WITH d AS (
@@ -495,7 +598,12 @@ export async function fetchCandlestick(
     });
     items = rows.map(rowToStockData);
   } else {
-    const aggRows = await fetchCandlestickAggregated(symbol, from, to, timeframe);
+    const aggRows = await fetchCandlestickAggregated(
+      symbol,
+      from,
+      to,
+      timeframe,
+    );
     items = aggRows.map((r) => aggRowToStockData(r, symbol));
   }
 
@@ -530,7 +638,9 @@ export async function fetchSectorHeatmap(
   tradeDate?: string,
   period: HeatmapPeriod = "1D",
 ): Promise<SectorHeatmapResponse> {
-  const date = tradeDate ? new Date(tradeDate) : await getLastTradeDate(marketType);
+  const date = tradeDate
+    ? new Date(tradeDate)
+    : await getLastTradeDate(marketType);
   const dateStr = toDateStr(date);
 
   if (period === "1D") {
@@ -541,7 +651,11 @@ export async function fetchSectorHeatmap(
         marketCap: true,
         change: true,
         taseSymbol: {
-          select: { companyName: true, companySector: true, companySubSector: true },
+          select: {
+            companyName: true,
+            companySector: true,
+            companySubSector: true,
+          },
         },
       },
       orderBy: { symbol: "asc" },
@@ -558,7 +672,13 @@ export async function fetchSectorHeatmap(
         subSector: r.taseSymbol?.companySubSector ?? null,
       }));
 
-    return { tradeDate: dateStr, marketType, period, count: items.length, items };
+    return {
+      tradeDate: dateStr,
+      marketType,
+      period,
+      count: items.length,
+      items,
+    };
   }
 
   // 1W / 1M / 3M: compute period change via LAG window function
@@ -618,6 +738,25 @@ export async function fetchSectorHeatmap(
   return { tradeDate: dateStr, marketType, period, count: items.length, items };
 }
 
+export async function resolveSymbolAndSecurityId(
+  securityIdOrSymbol: string | number,
+): Promise<{ symbol: string; securityId: number }> {
+  const isNumeric =
+    typeof securityIdOrSymbol === "number" ||
+    (typeof securityIdOrSymbol === "string" && /^\d+$/.test(securityIdOrSymbol));
+
+  if (isNumeric) {
+    const id = typeof securityIdOrSymbol === "number" ? securityIdOrSymbol : parseInt(securityIdOrSymbol, 10);
+    const row = await prisma.taseSymbol.findUnique({ where: { securityId: id }, select: { symbol: true, securityId: true } });
+    if (!row) throw new Error(`No symbol found for securityId: ${id}`);
+    return { symbol: row.symbol, securityId: row.securityId };
+  }
+
+  const row = await prisma.taseSymbol.findUnique({ where: { symbol: securityIdOrSymbol as string }, select: { symbol: true, securityId: true } });
+  if (!row) throw new Error(`No securityId found for symbol: ${securityIdOrSymbol}`);
+  return { symbol: row.symbol, securityId: row.securityId };
+}
+
 export const dbProviders: TaseDataProviders = {
   fetchEndOfDay,
   fetchMarketSpirit,
@@ -626,4 +765,5 @@ export const dbProviders: TaseDataProviders = {
   fetchEndOfDaySymbolsByDate,
   fetchCandlestick,
   fetchSectorHeatmap,
+  resolveSymbol: resolveSymbolAndSecurityId,
 };

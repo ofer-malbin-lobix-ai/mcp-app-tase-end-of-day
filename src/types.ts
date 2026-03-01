@@ -64,6 +64,27 @@ export interface UptrendSymbolsResponse {
 
 export type CandlestickTimeframe = "1D" | "3D" | "1W" | "1M" | "3M";
 
+export interface IntradayItem {
+  date: string;
+  lastSaleTime: string | null;
+  securityId: number;
+  securityLastPrice: number | null;
+  securityPercentageChange: number | null;
+  lastSellVolume: number | null;
+  securityDailyAggVolume: number | null;
+  securityDailyAggValue: number | null;
+  securityDailyNumTrades: number | null;
+}
+
+export type IntradayTimeframe = "1m" | "3m" | "5m" | "10m" | "30m" | "1h";
+
+export interface IntradayCandlestickResponse {
+  symbol: string;
+  securityId: number;
+  count: number;
+  items: IntradayItem[];
+}
+
 export interface CandlestickResponse {
   symbol: string;
   count: number;
@@ -108,6 +129,7 @@ export interface TaseDataProviders {
   fetchEndOfDaySymbolsByDate(symbols: string[], tradeDate?: string, period?: HeatmapPeriod): Promise<EndOfDaySymbolsResponse>;
   fetchCandlestick(symbol: string, dateFrom?: string, dateTo?: string, timeframe?: CandlestickTimeframe): Promise<CandlestickResponse>;
   fetchSectorHeatmap(marketType?: string, tradeDate?: string, period?: HeatmapPeriod): Promise<SectorHeatmapResponse>;
+  resolveSymbol(securityIdOrSymbol: string | number): Promise<{ symbol: string; securityId: number }>;
 }
 
 export interface UserPosition {
