@@ -17,6 +17,8 @@ interface UserPosition {
   symbol: string;
   startDate: string;
   amount: number;
+  avgEntryPrice?: number;
+  side?: "long" | "short";
 }
 
 interface UserPositionsData {
@@ -29,12 +31,15 @@ interface FormState {
   symbol: string;
   startDate: string;
   amount: string;
+  avgEntryPrice: string;
+  side: "long" | "short";
 }
 
 interface FormErrors {
   symbol?: string;
   startDate?: string;
   amount?: string;
+  avgEntryPrice?: string;
 }
 
 // ─── Extraction ─────────────────────────────────────────────────────
@@ -66,6 +71,26 @@ function fmtAmount(v: number): string {
   return v.toLocaleString();
 }
 
+function fmtPrice(v: number | undefined): string {
+  if (v === undefined || v === null) return "—";
+  return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function computeAlloc(positions: UserPosition[]): Map<string, number> {
+  const alloc = new Map<string, number>();
+  let total = 0;
+  for (const p of positions) {
+    const value = p.amount * (p.avgEntryPrice ?? 0);
+    total += value;
+  }
+  if (total === 0) return alloc;
+  for (const p of positions) {
+    const value = p.amount * (p.avgEntryPrice ?? 0);
+    alloc.set(p.symbol, (value / total) * 100);
+  }
+  return alloc;
+}
+
 // ─── Validation ──────────────────────────────────────────────────────
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -82,6 +107,12 @@ function validateForm(form: FormState, isEdit: boolean): FormErrors {
   if (isNaN(amount) || amount <= 0) {
     errors.amount = "Amount must be a positive number";
   }
+  if (form.avgEntryPrice.trim()) {
+    const price = parseFloat(form.avgEntryPrice);
+    if (isNaN(price) || price <= 0) {
+      errors.avgEntryPrice = "Price must be a positive number";
+    }
+  }
   return errors;
 }
 
@@ -93,7 +124,7 @@ function MyPositionsManagerApp() {
   const [needsAutoFetch, setNeedsAutoFetch] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState<FormState>({ symbol: "", startDate: "", amount: "" });
+  const [form, setForm] = useState<FormState>({ symbol: "", startDate: "", amount: "", avgEntryPrice: "", side: "long" });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -182,14 +213,20 @@ function MyPositionsManagerApp() {
   // ─── Form handlers ───────────────────────────────────────────────
 
   const handleAddClick = useCallback(() => {
-    setForm({ symbol: "", startDate: "", amount: "" });
+    setForm({ symbol: "", startDate: "", amount: "", avgEntryPrice: "", side: "long" });
     setFormErrors({});
     setIsEditing(false);
     setShowForm(true);
   }, []);
 
   const handleEditClick = useCallback((pos: UserPosition) => {
-    setForm({ symbol: pos.symbol, startDate: pos.startDate, amount: String(pos.amount) });
+    setForm({
+      symbol: pos.symbol,
+      startDate: pos.startDate,
+      amount: String(pos.amount),
+      avgEntryPrice: pos.avgEntryPrice !== undefined ? String(pos.avgEntryPrice) : "",
+      side: pos.side ?? "long",
+    });
     setFormErrors({});
     setIsEditing(true);
     setShowForm(true);
@@ -209,13 +246,18 @@ function MyPositionsManagerApp() {
     if (!app || typeof app.callServerTool !== "function") return;
     setIsSaving(true);
     try {
+      const args: Record<string, unknown> = {
+        symbol: form.symbol.trim().toUpperCase(),
+        startDate: form.startDate,
+        amount: parseFloat(form.amount),
+        side: form.side,
+      };
+      if (form.avgEntryPrice.trim()) {
+        args.avgEntryPrice = parseFloat(form.avgEntryPrice);
+      }
       await app.callServerTool({
         name: "set-user-position",
-        arguments: {
-          symbol: form.symbol.trim().toUpperCase(),
-          startDate: form.startDate,
-          amount: parseFloat(form.amount),
-        },
+        arguments: args,
       });
       setShowForm(false);
       setFormErrors({});
@@ -254,6 +296,7 @@ function MyPositionsManagerApp() {
   if (!app) return <div className={styles.loading}>Connecting...</div>;
 
   const positions = data?.positions ?? [];
+  const allocMap = computeAlloc(positions);
   const isBusy = isSaving || isDeleting !== null;
 
   return (
@@ -317,6 +360,38 @@ function MyPositionsManagerApp() {
               />
               {formErrors.amount && <span className={styles.fieldError}>{formErrors.amount}</span>}
             </label>
+            <label className={styles.label}>
+              Avg Entry Price
+              <input
+                className={`${styles.input} ${formErrors.avgEntryPrice ? styles.inputError : ""}`}
+                type="number"
+                min="0"
+                step="any"
+                value={form.avgEntryPrice}
+                onChange={(e) => handleFieldChange("avgEntryPrice", e.target.value)}
+                placeholder="e.g. 52.30"
+              />
+              {formErrors.avgEntryPrice && <span className={styles.fieldError}>{formErrors.avgEntryPrice}</span>}
+            </label>
+            <label className={styles.label}>
+              Side
+              <div className={styles.sideToggle}>
+                <button
+                  type="button"
+                  className={`${styles.sideBtn} ${form.side === "long" ? styles.sideBtnActive : ""}`}
+                  onClick={() => setForm((prev) => ({ ...prev, side: "long" }))}
+                >
+                  Long
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.sideBtn} ${form.side === "short" ? styles.sideBtnActiveShort : ""}`}
+                  onClick={() => setForm((prev) => ({ ...prev, side: "short" }))}
+                >
+                  Short
+                </button>
+              </div>
+            </label>
           </div>
           <div className={styles.formActions}>
             <button className={styles.saveBtn} onClick={handleSave} disabled={isSaving}>
@@ -339,17 +414,29 @@ function MyPositionsManagerApp() {
             <thead>
               <tr>
                 <th className={`${styles.th} ${styles.thLeft}`}>Symbol</th>
+                <th className={`${styles.th} ${styles.thLeft}`}>Side</th>
                 <th className={`${styles.th} ${styles.thLeft}`}>Start Date</th>
                 <th className={styles.th}>Amount</th>
+                <th className={styles.th}>Avg Price</th>
+                <th className={styles.th}>Alloc%</th>
                 <th className={`${styles.th} ${styles.thActions}`}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {positions.map((pos) => (
+              {positions.map((pos) => {
+                const alloc = allocMap.get(pos.symbol);
+                return (
                 <tr key={pos.symbol} className={styles.tr}>
                   <td className={`${styles.tdLeft} ${styles.tdSymbol}`}>{pos.symbol}</td>
+                  <td className={styles.tdLeft}>
+                    <span className={pos.side === "short" ? styles.sideShort : styles.sideLong}>
+                      {(pos.side ?? "long").toUpperCase()}
+                    </span>
+                  </td>
                   <td className={styles.tdLeft}>{pos.startDate}</td>
                   <td className={styles.td}>{fmtAmount(pos.amount)}</td>
+                  <td className={styles.td}>{fmtPrice(pos.avgEntryPrice)}</td>
+                  <td className={styles.td}>{alloc !== undefined ? alloc.toFixed(1) + "%" : "—"}</td>
                   <td className={styles.tdActions}>
                     <button
                       className={styles.editBtn}
@@ -367,7 +454,8 @@ function MyPositionsManagerApp() {
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

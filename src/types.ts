@@ -113,6 +113,8 @@ export interface UserPosition {
   symbol: string;
   startDate: string; // YYYY-MM-DD
   amount: number;
+  avgEntryPrice?: number;
+  side?: "long" | "short";
 }
 
 export interface UserPositionsResponse {

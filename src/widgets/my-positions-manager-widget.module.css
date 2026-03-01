@@ -237,6 +237,58 @@
   background: var(--t-bg-tertiary);
 }
 
+/* Side badges */
+.sideLong {
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold, 600);
+  color: #22c55e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sideShort {
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold, 600);
+  color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Side toggle in form */
+.sideToggle {
+  display: flex;
+  border: 1px solid var(--t-border);
+  border-radius: var(--border-radius-sm, 4px);
+  overflow: hidden;
+}
+
+.sideBtn {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  border: none;
+  background: var(--t-bg-primary);
+  color: var(--t-text-secondary);
+  font-family: inherit;
+  font-size: var(--font-text-sm-size, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.sideBtn:first-child {
+  border-right: 1px solid var(--t-border);
+}
+
+.sideBtnActive {
+  background: #22c55e;
+  color: white;
+}
+
+.sideBtnActiveShort {
+  background: #ef4444;
+  color: white;
+}
+
 /* States */
 .authError {
   background: var(--t-error-bg);

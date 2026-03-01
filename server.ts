@@ -749,6 +749,8 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
         symbol: z.string().min(1).describe("Stock symbol (e.g. 'TEVA')"),
         startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Start date in YYYY-MM-DD format"),
         amount: z.number().positive().describe("Number of shares/units held"),
+        avgEntryPrice: z.number().positive().optional().describe("Average entry price per share"),
+        side: z.enum(["long", "short"]).optional().describe("Position side: long or short"),
       },
       _meta: { ui: { visibility: ["app"] } },
     },
@@ -760,7 +762,10 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
       const user = await clerkClient.users.getUser(userId);
       const existing = (user.privateMetadata?.positions as UserPosition[] | undefined) ?? [];
       const updated = existing.filter((p) => p.symbol !== args.symbol);
-      updated.push({ symbol: args.symbol, startDate: args.startDate, amount: args.amount });
+      const pos: UserPosition = { symbol: args.symbol, startDate: args.startDate, amount: args.amount };
+      if (args.avgEntryPrice !== undefined) pos.avgEntryPrice = args.avgEntryPrice;
+      if (args.side !== undefined) pos.side = args.side;
+      updated.push(pos);
       await clerkClient.users.updateUser(userId, {
         privateMetadata: { ...user.privateMetadata, positions: updated },
       });
