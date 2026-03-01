@@ -173,20 +173,34 @@ async function fetchAllData(
   if (args.tradeDate) callArgs.tradeDate = args.tradeDate as string;
   if (args.marketType) callArgs.marketType = args.marketType as string;
 
-  const [spiritResult, eodResult, uptrendResult] = await Promise.allSettled([
-    app.callServerTool({ name: "get-market-spirit-data", arguments: callArgs }),
-    app.callServerTool({ name: "get-market-end-of-day-data", arguments: callArgs }),
-    app.callServerTool({ name: "get-market-uptrend-symbols-data", arguments: callArgs }),
-  ]);
+  // Fetch sequentially to avoid MCP request timeouts
+  let spirit: MarketSpiritData | null = null;
+  let eod: EndOfDayData | null = null;
+  let uptrend: UptrendData | null = null;
+  let spiritError: string | null = null;
+  let eodError: string | null = null;
+  let uptrendError: string | null = null;
 
-  setData({
-    spirit: spiritResult.status === "fulfilled" ? extractFromResult<MarketSpiritData>(spiritResult.value) : null,
-    eod: eodResult.status === "fulfilled" ? extractFromResult<EndOfDayData>(eodResult.value) : null,
-    uptrend: uptrendResult.status === "fulfilled" ? extractFromResult<UptrendData>(uptrendResult.value) : null,
-    spiritError: spiritResult.status === "rejected" ? "Failed to load" : null,
-    eodError: eodResult.status === "rejected" ? "Failed to load" : null,
-    uptrendError: uptrendResult.status === "rejected" ? "Failed to load" : null,
-  });
+  try {
+    const r = await app.callServerTool({ name: "get-market-spirit-data", arguments: callArgs });
+    spirit = extractFromResult<MarketSpiritData>(r);
+    if (!spirit) spiritError = "Failed to parse";
+  } catch (e) { spiritError = "Failed to load"; }
+  setData((prev) => ({ ...prev, spirit, spiritError }));
+
+  try {
+    const r = await app.callServerTool({ name: "get-market-end-of-day-data", arguments: callArgs });
+    eod = extractFromResult<EndOfDayData>(r);
+    if (!eod) eodError = "Failed to parse";
+  } catch (e) { eodError = "Failed to load"; }
+  setData((prev) => ({ ...prev, eod, eodError }));
+
+  try {
+    const r = await app.callServerTool({ name: "get-market-uptrend-symbols-data", arguments: callArgs });
+    uptrend = extractFromResult<UptrendData>(r);
+    if (!uptrend) uptrendError = "Failed to parse";
+  } catch (e) { uptrendError = "Failed to load"; }
+  setData((prev) => ({ ...prev, uptrend, uptrendError }));
 }
 
 // ---------- Inner component ----------
