@@ -7,8 +7,8 @@ Tests run against the **production deployment** by default — no server setup o
 
 - **Node.js 18+**
 - **Google Chrome** (for ChatGPT platform tests)
-- **ChatGPT account** with the `eod prod` MCP connector configured
-  - Go to ChatGPT → Settings → Connected apps → add the TASE End of Day connector
+- **ChatGPT account** with the `tase-market` MCP connector configured
+  - Go to ChatGPT → Settings → Connected apps → add the TASE Market connector
 - **macOS + Claude Desktop** (optional, for `--platform claude-desktop` tests only)
   - Claude Desktop must have the `tase-end-of-day` MCP server connected
   - Terminal must have Accessibility permission: System Settings → Privacy & Security → Accessibility
@@ -48,8 +48,8 @@ npm run test:my-positions-manager
 # Run all tests
 npm run test:all
 
-# Target a different MCP connector name (default: "eod prod")
-node widget-tests.mjs market-end-of-day --mcp "eod prod"
+# Target a different MCP connector name (default: "tase-market")
+node widget-tests.mjs market-end-of-day --mcp "tase-market-dev"
 
 # Claude Desktop platform (macOS only)
 node widget-tests.mjs market-end-of-day --platform claude-desktop

@@ -11,14 +11,14 @@
  *   - OR run: npm run test:start-chrome
  *
  * Prerequisites (claude-desktop):
- *   - Claude Desktop running with eod-dev MCP server connected
+ *   - Claude Desktop running with tase-market-dev MCP server connected
  *   - Terminal must have Accessibility permission (System Settings → Privacy & Security → Accessibility)
  *
  * Usage:
  *   node tests/widget-tests.mjs [test-name] [--mcp <name>] [--platform <platform>]
  *
  * Options:
- *   --mcp <name>          MCP app name for ChatGPT messages (default: "eod prod")
+ *   --mcp <name>          MCP app name for ChatGPT messages (default: "tase-market")
  *   --platform <name>     "chatgpt" (default) or "claude-desktop"
  *
  * Available tests:
@@ -54,7 +54,7 @@ mkdirSync(SCREENSHOT_DIR, { recursive: true });
 const args = process.argv.slice(2);
 
 const mcpFlagIdx = args.indexOf('--mcp');
-const MCP_NAME = mcpFlagIdx !== -1 ? args[mcpFlagIdx + 1] : 'eod prod';
+const MCP_NAME = mcpFlagIdx !== -1 ? args[mcpFlagIdx + 1] : 'tase-market';
 
 const platformFlagIdx = args.indexOf('--platform');
 const PLATFORM = platformFlagIdx !== -1 ? args[platformFlagIdx + 1] : 'chatgpt';
