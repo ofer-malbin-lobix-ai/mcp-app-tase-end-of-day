@@ -752,8 +752,9 @@ export async function resolveSymbolAndSecurityId(
     return { symbol: row.symbol, securityId: row.securityId };
   }
 
-  const row = await prisma.taseSymbol.findUnique({ where: { symbol: securityIdOrSymbol as string }, select: { symbol: true, securityId: true } });
-  if (!row) throw new Error(`No securityId found for symbol: ${securityIdOrSymbol}`);
+  const sym = (securityIdOrSymbol as string).toUpperCase();
+  const row = await prisma.taseSymbol.findUnique({ where: { symbol: sym }, select: { symbol: true, securityId: true } });
+  if (!row) throw new Error(`No securityId found for symbol: ${sym}`);
   return { symbol: row.symbol, securityId: row.securityId };
 }
 
