@@ -18,6 +18,7 @@ interface UserPosition {
   startDate: string;
   amount: number;
   avgEntryPrice?: number;
+  alloc?: number;
   side?: "long" | "short";
 }
 
@@ -32,6 +33,7 @@ interface FormState {
   startDate: string;
   amount: string;
   avgEntryPrice: string;
+  alloc: string;
   side: "long" | "short";
 }
 
@@ -40,6 +42,7 @@ interface FormErrors {
   startDate?: string;
   amount?: string;
   avgEntryPrice?: string;
+  alloc?: string;
 }
 
 // ─── Extraction ─────────────────────────────────────────────────────
@@ -76,21 +79,6 @@ function fmtPrice(v: number | undefined): string {
   return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function computeAlloc(positions: UserPosition[]): Map<string, number> {
-  const alloc = new Map<string, number>();
-  let total = 0;
-  for (const p of positions) {
-    const value = p.amount * (p.avgEntryPrice ?? 0);
-    total += value;
-  }
-  if (total === 0) return alloc;
-  for (const p of positions) {
-    const value = p.amount * (p.avgEntryPrice ?? 0);
-    alloc.set(p.symbol, (value / total) * 100);
-  }
-  return alloc;
-}
-
 // ─── Validation ──────────────────────────────────────────────────────
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -113,6 +101,12 @@ function validateForm(form: FormState, isEdit: boolean): FormErrors {
       errors.avgEntryPrice = "Price must be a positive number";
     }
   }
+  if (form.alloc.trim()) {
+    const alloc = parseFloat(form.alloc);
+    if (isNaN(alloc) || alloc < 0 || alloc > 100) {
+      errors.alloc = "Must be 0–100";
+    }
+  }
   return errors;
 }
 
@@ -124,7 +118,7 @@ function MyPositionsManagerApp() {
   const [needsAutoFetch, setNeedsAutoFetch] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState<FormState>({ symbol: "", startDate: "", amount: "", avgEntryPrice: "", side: "long" });
+  const [form, setForm] = useState<FormState>({ symbol: "", startDate: "", amount: "", avgEntryPrice: "", alloc: "", side: "long" });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -213,7 +207,7 @@ function MyPositionsManagerApp() {
   // ─── Form handlers ───────────────────────────────────────────────
 
   const handleAddClick = useCallback(() => {
-    setForm({ symbol: "", startDate: "", amount: "", avgEntryPrice: "", side: "long" });
+    setForm({ symbol: "", startDate: "", amount: "", avgEntryPrice: "", alloc: "", side: "long" });
     setFormErrors({});
     setIsEditing(false);
     setShowForm(true);
@@ -225,6 +219,7 @@ function MyPositionsManagerApp() {
       startDate: pos.startDate,
       amount: String(pos.amount),
       avgEntryPrice: pos.avgEntryPrice !== undefined ? String(pos.avgEntryPrice) : "",
+      alloc: pos.alloc !== undefined ? String(pos.alloc) : "",
       side: pos.side ?? "long",
     });
     setFormErrors({});
@@ -254,6 +249,9 @@ function MyPositionsManagerApp() {
       };
       if (form.avgEntryPrice.trim()) {
         args.avgEntryPrice = parseFloat(form.avgEntryPrice);
+      }
+      if (form.alloc.trim()) {
+        args.alloc = parseFloat(form.alloc);
       }
       await app.callServerTool({
         name: "set-user-position",
@@ -296,7 +294,6 @@ function MyPositionsManagerApp() {
   if (!app) return <div className={styles.loading}>Connecting...</div>;
 
   const positions = data?.positions ?? [];
-  const allocMap = computeAlloc(positions);
   const isBusy = isSaving || isDeleting !== null;
 
   return (
@@ -374,6 +371,20 @@ function MyPositionsManagerApp() {
               {formErrors.avgEntryPrice && <span className={styles.fieldError}>{formErrors.avgEntryPrice}</span>}
             </label>
             <label className={styles.label}>
+              Alloc %
+              <input
+                className={`${styles.input} ${formErrors.alloc ? styles.inputError : ""}`}
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                value={form.alloc}
+                onChange={(e) => handleFieldChange("alloc", e.target.value)}
+                placeholder="e.g. 25"
+              />
+              {formErrors.alloc && <span className={styles.fieldError}>{formErrors.alloc}</span>}
+            </label>
+            <label className={styles.label}>
               Side
               <div className={styles.sideToggle}>
                 <button
@@ -424,7 +435,6 @@ function MyPositionsManagerApp() {
             </thead>
             <tbody>
               {positions.map((pos) => {
-                const alloc = allocMap.get(pos.symbol);
                 return (
                 <tr key={pos.symbol} className={styles.tr}>
                   <td className={`${styles.tdLeft} ${styles.tdSymbol}`}>{pos.symbol}</td>
@@ -436,7 +446,7 @@ function MyPositionsManagerApp() {
                   <td className={styles.tdLeft}>{pos.startDate}</td>
                   <td className={styles.td}>{fmtAmount(pos.amount)}</td>
                   <td className={styles.td}>{fmtPrice(pos.avgEntryPrice)}</td>
-                  <td className={styles.td}>{alloc !== undefined ? alloc.toFixed(1) + "%" : "—"}</td>
+                  <td className={styles.td}>{pos.alloc !== undefined ? pos.alloc.toFixed(1) + "%" : "—"}</td>
                   <td className={styles.tdActions}>
                     <button
                       className={styles.editBtn}

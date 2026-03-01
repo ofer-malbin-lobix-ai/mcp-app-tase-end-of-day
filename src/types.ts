@@ -114,6 +114,7 @@ export interface UserPosition {
   startDate: string; // YYYY-MM-DD
   amount: number;
   avgEntryPrice?: number;
+  alloc?: number; // position value in %
   side?: "long" | "short";
 }
 

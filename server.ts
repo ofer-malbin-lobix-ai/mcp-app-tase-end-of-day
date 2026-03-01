@@ -750,6 +750,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
         startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Start date in YYYY-MM-DD format"),
         amount: z.number().positive().describe("Number of shares/units held"),
         avgEntryPrice: z.number().positive().optional().describe("Average entry price per share"),
+        alloc: z.number().min(0).max(100).optional().describe("Position allocation in %"),
         side: z.enum(["long", "short"]).optional().describe("Position side: long or short"),
       },
       _meta: { ui: { visibility: ["app"] } },
@@ -764,6 +765,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
       const updated = existing.filter((p) => p.symbol !== args.symbol);
       const pos: UserPosition = { symbol: args.symbol, startDate: args.startDate, amount: args.amount };
       if (args.avgEntryPrice !== undefined) pos.avgEntryPrice = args.avgEntryPrice;
+      if (args.alloc !== undefined) pos.alloc = args.alloc;
       if (args.side !== undefined) pos.side = args.side;
       updated.push(pos);
       await clerkClient.users.updateUser(userId, {
