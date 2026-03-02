@@ -65,6 +65,7 @@ const TOOL_GROUPS = [
     title: "Online",
     tools: [
       { icon: "\u{23F1}\u{FE0F}", name: "Intraday Candlestick", description: "Intraday candlestick chart with configurable timeframes", prompt: "call show-intraday-candlestick-widget" },
+      { icon: "\u{1F4E1}", name: "Last Update", description: "Real-time last-update trading data for all securities", prompt: "call show-last-update-end-of-day-widget" },
     ],
   },
 ];

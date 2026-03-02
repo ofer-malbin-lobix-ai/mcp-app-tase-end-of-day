@@ -38,6 +38,10 @@ export type {
 
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
 import { fetchIntraday } from "./src/tase-data-hub/fetch-intraday-from-tase-data-hub.js";
+// @ts-ignore — imported from source at runtime (not compiled by tsc)
+import { fetchLastUpdate } from "./src/tase-data-hub/fetch-last-update-from-tase-data-hub.js";
+// @ts-ignore — imported from source at runtime (not compiled by tsc)
+import { prisma } from "./src/db/db.js";
 
 // Works both from source (server.ts) and compiled (dist/server.js)
 const __filename = fileURLToPath(import.meta.url);
@@ -217,6 +221,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
   const symbolsCandlestickWidgetResourceUri = "ui://tase-end-of-day/symbols-candlestick-widget-v5.html";
   const symbolsTableResourceUri = "ui://tase-end-of-day/symbols-table-widget-v5.html";
   const intradayCandlestickResourceUri = "ui://tase-end-of-day/intraday-candlestick-widget-v3.html";
+  const lastUpdateResourceUri = "ui://tase-end-of-day/last-update-end-of-day-widget-v1.html";
 
   // Data-only tool: Get TASE end of day data
   registerAppTool(server,
@@ -432,6 +437,58 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
       const items = await fetchIntraday(securityId);
       const response: IntradayCandlestickResponse = { symbol, securityId, count: items.length, items };
       return { content: [{ type: "text", text: JSON.stringify(response) }] };
+    },
+  );
+
+  // Data-only tool: Get Last Update trading data
+  registerAppTool(server,
+    "get-last-update-data",
+    {
+      title: "Get Last Update Data",
+      description: "Returns TASE last-update trading data for all securities including last price, change%, volume, and trading phase. Data only - use show-last-update-end-of-day-widget for visualization.",
+      inputSchema: {},
+      _meta: { ui: { visibility: ["model", "app"] } },
+    },
+    async (): Promise<CallToolResult> => {
+      const items = await fetchLastUpdate();
+      // Bulk-resolve symbols via TaseSymbol table
+      const securityIds = items.map((item: { securityId: number }) => item.securityId);
+      const symbols = await prisma.taseSymbol.findMany({
+        where: { securityId: { in: securityIds } },
+        select: { securityId: true, symbol: true },
+      });
+      const symbolMap = new Map(symbols.map((s: { securityId: number; symbol: string }) => [s.securityId, s.symbol]));
+      const enrichedItems = items.map((item: { securityId: number }) => ({
+        ...item,
+        symbol: symbolMap.get(item.securityId) ?? null,
+      }));
+      return { content: [{ type: "text", text: JSON.stringify({ count: enrichedItems.length, items: enrichedItems }) }] };
+    },
+  );
+
+  // UI tool: Show Last Update end of day widget
+  registerAppTool(server,
+    "show-last-update-end-of-day-widget",
+    {
+      title: "Show Last Update End of Day",
+      description: "Displays TASE last-update trading data with interactive table visualization showing real-time prices, changes, and volume.",
+      inputSchema: {},
+      _meta: { ui: { resourceUri: lastUpdateResourceUri } },
+    },
+    async (): Promise<CallToolResult> => {
+      const items = await fetchLastUpdate();
+      // Bulk-resolve symbols via TaseSymbol table
+      const securityIds = items.map((item: { securityId: number }) => item.securityId);
+      const symbols = await prisma.taseSymbol.findMany({
+        where: { securityId: { in: securityIds } },
+        select: { securityId: true, symbol: true },
+      });
+      const symbolMap = new Map(symbols.map((s: { securityId: number; symbol: string }) => [s.securityId, s.symbol]));
+      const enrichedItems = items.map((item: { securityId: number }) => ({
+        ...item,
+        symbol: symbolMap.get(item.securityId) ?? null,
+      }));
+      return { content: [{ type: "text", text: JSON.stringify({ count: enrichedItems.length, items: enrichedItems }) }] };
     },
   );
 
@@ -1019,6 +1076,15 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(path.join(DIST_DIR, "intraday-candlestick-widget.html"), "utf-8");
       return { contents: [{ uri: intradayCandlestickResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
+    },
+  );
+
+  registerAppResource(server,
+    lastUpdateResourceUri, lastUpdateResourceUri,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(path.join(DIST_DIR, "last-update-end-of-day-widget.html"), "utf-8");
+      return { contents: [{ uri: lastUpdateResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );
 
