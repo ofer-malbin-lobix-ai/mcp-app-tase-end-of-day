@@ -2,7 +2,7 @@
  * Intraday Candlestick Chart Widget
  * Displays an intraday candlestick chart for a single TASE symbol.
  * Raw intraday ticks are aggregated client-side into configurable timeframe candles.
- * Auto-refreshes every 30 minutes.
+ * Auto-refreshes every 30 seconds.
  */
 import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
@@ -198,7 +198,7 @@ function formatVolume(volume: number): string {
   return String(volume);
 }
 
-const AUTO_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
+const AUTO_REFRESH_INTERVAL = 30 * 1000; // 30 seconds
 
 // ─── Main App ──────────────────────────────────────────────────────────
 
@@ -403,7 +403,7 @@ function IntradayAppInner({ app, data, setData, toolInput: _toolInput, hostConte
     }
   }, [symbolInput, handleRefresh]);
 
-  // Auto-refresh every 30 minutes (when enabled)
+  // Auto-refresh every 30 seconds (when enabled)
   useEffect(() => {
     if (!autoRefresh || !data?.symbol) return;
     const interval = setInterval(() => {
@@ -445,7 +445,7 @@ function IntradayAppInner({ app, data, setData, toolInput: _toolInput, hostConte
             checked={autoRefresh}
             onChange={(e) => setAutoRefresh(e.target.checked)}
           />
-          Auto-refresh (30 min)
+          Auto-refresh (30 sec)
         </label>
       </div>
 
