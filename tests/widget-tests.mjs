@@ -35,7 +35,7 @@
  *   symbols-candlestick     — show-symbols-candlestick-widget (TEVA, NICE, ESLT) + symbol switch
  *   symbols-table           — show-symbols-table-widget (TEVA, NICE, ESLT) + period buttons
  *   symbol-candlestick      — show-symbol-candlestick-widget (single symbol: TEVA)
- *   symbol-intraday         — show-symbol-intraday-candlestick-widget (TEVA) + timeframe switch
+ *   symbol-intraday         — show-intraday-candlestick-widget (TEVA) + timeframe switch
  *   landing                 — show-tase-market-landing-widget
  *   all                     — run all tests sequentially
  */
@@ -427,7 +427,7 @@ async function testSymbolCandlestick(page) {
 async function testSymbolIntraday(page) {
   console.log('\n🧪 Test: symbol-intraday');
   await newChat(page);
-  await sendMessage(page, `@${MCP_NAME} call show-symbol-intraday-candlestick-widget with securityIdOrSymbol: "TEVA"`);
+  await sendMessage(page, `@${MCP_NAME} call show-intraday-candlestick-widget with securityIdOrSymbol: "TEVA"`);
   console.log('  Waiting for widget...');
   await sleep(35000);
   await screenshot(page, 'symbol-intraday-initial');
@@ -593,7 +593,7 @@ async function testSymbolCandlestickDesktop() {
 async function testSymbolIntradayDesktop() {
   console.log('\n🧪 Test: symbol-intraday (Claude Desktop)');
   await newChatDesktop();
-  await sendMessageDesktop('call show-symbol-intraday-candlestick-widget with securityIdOrSymbol: "TEVA"');
+  await sendMessageDesktop('call show-intraday-candlestick-widget with securityIdOrSymbol: "TEVA"');
   console.log('  Waiting for widget...');
   await sleep(40000);
   await screenshotDesktop('cd-symbol-intraday');

@@ -216,7 +216,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
   const symbolsEndOfDayResourceUri = "ui://tase-end-of-day/symbols-end-of-day-widget-v4.html";
   const symbolsCandlestickWidgetResourceUri = "ui://tase-end-of-day/symbols-candlestick-widget-v4.html";
   const symbolsTableResourceUri = "ui://tase-end-of-day/symbols-table-widget-v4.html";
-  const intradayCandlestickResourceUri = "ui://tase-end-of-day/symbol-intraday-candlestick-widget-v2.html";
+  const intradayCandlestickResourceUri = "ui://tase-end-of-day/intraday-candlestick-widget-v2.html";
 
   // Data-only tool: Get TASE end of day data
   registerAppTool(server,
@@ -403,10 +403,10 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
 
   // Data-only tool: Get Intraday Candlestick data
   registerAppTool(server,
-    "get-symbol-intraday-candlestick-data",
+    "get-intraday-candlestick-data",
     {
-      title: "Get Symbol Intraday Candlestick Data",
-      description: "Returns TASE intraday trading data for a single symbol/securityId. Raw tick data for client-side candlestick aggregation. Data only - use show-symbol-intraday-candlestick-widget for visualization.",
+      title: "Get Intraday Candlestick Data",
+      description: "Returns TASE intraday trading data for a single symbol/securityId. Raw tick data for client-side candlestick aggregation. Data only - use show-intraday-candlestick-widget for visualization.",
       inputSchema: getIntradayCandlestickSchema,
       _meta: { ui: { visibility: ["model", "app"] } },
     },
@@ -420,9 +420,9 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
 
   // UI tool: Show Intraday Candlestick chart
   registerAppTool(server,
-    "show-symbol-intraday-candlestick-widget",
+    "show-intraday-candlestick-widget",
     {
-      title: "Show Symbol Intraday Candlestick",
+      title: "Show Intraday Candlestick",
       description: "Displays an intraday candlestick chart for a single TASE symbol with configurable timeframes (1m, 3m, 5m, 10m, 30m, 1h). Auto-refreshes every 30 minutes.",
       inputSchema: getIntradayCandlestickSchema,
       _meta: { ui: { resourceUri: intradayCandlestickResourceUri } },
@@ -1017,7 +1017,7 @@ export function createServer(options: { subscribeUrl?: string; providers: TaseDa
     intradayCandlestickResourceUri, intradayCandlestickResourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(path.join(DIST_DIR, "symbol-intraday-candlestick-widget.html"), "utf-8");
+      const html = await fs.readFile(path.join(DIST_DIR, "intraday-candlestick-widget.html"), "utf-8");
       return { contents: [{ uri: intradayCandlestickResourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }] };
     },
   );

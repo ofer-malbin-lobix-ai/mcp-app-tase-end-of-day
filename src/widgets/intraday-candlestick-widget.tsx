@@ -18,7 +18,7 @@ import {
 } from "lightweight-charts-react-components";
 import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import styles from "./symbol-intraday-candlestick-widget.module.css";
+import styles from "./intraday-candlestick-widget.module.css";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -227,7 +227,7 @@ function IntradayCandlestickApp() {
     if (!needsAutoFetch || !app) return;
     setNeedsAutoFetch(false);
     if (typeof app.callServerTool !== "function") return;
-    app.callServerTool({ name: "get-symbol-intraday-candlestick-data", arguments: {} })
+    app.callServerTool({ name: "get-intraday-candlestick-data", arguments: {} })
       .then((result) => {
         const fetched = extractIntradayData(result);
         if (fetched) setData(fetched);
@@ -352,7 +352,7 @@ function IntradayAppInner({ app, data, setData, toolInput: _toolInput, hostConte
     if (securityIdOrSymbol) args.securityIdOrSymbol = securityIdOrSymbol;
     try {
       const result = await app.callServerTool({
-        name: "get-symbol-intraday-candlestick-data",
+        name: "get-intraday-candlestick-data",
         arguments: args,
       });
       const fetched = extractIntradayData(result);
