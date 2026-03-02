@@ -23,6 +23,7 @@ import styles from "./symbol-candlestick-widget.module.css";
 interface StockData {
   tradeDate: string;
   symbol: string;
+  securityId: number;
   change: number | null;
   closingPrice: number | null;
   openingPrice: number | null;

@@ -15,6 +15,7 @@ import styles from "./symbols-end-of-day-widget.module.css";
 interface StockData {
   tradeDate: string;
   symbol: string;
+  securityId: number;
   change: number | null;              // percentage change
   turnover: number | null;
   closingPrice: number | null;

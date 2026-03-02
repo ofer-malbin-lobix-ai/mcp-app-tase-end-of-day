@@ -29,6 +29,7 @@ type SortDir = "asc" | "desc";
 interface StockData {
   tradeDate: string;
   symbol: string;
+  securityId: number;
   change: number | null;
   closingPrice: number | null;
   turnover: number | null;

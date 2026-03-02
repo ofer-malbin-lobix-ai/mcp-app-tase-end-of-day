@@ -48,6 +48,7 @@ const SIDEBAR_PERIODS: { value: HeatmapPeriod; label: string }[] = [
 interface StockData {
   tradeDate: string;
   symbol: string;
+  securityId: number;
   change: number | null;
   closingPrice: number | null;
   openingPrice: number | null;
