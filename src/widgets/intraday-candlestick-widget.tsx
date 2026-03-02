@@ -265,6 +265,7 @@ function IntradayAppInner({ app, data, setData, toolInput: _toolInput, hostConte
   const [legendValues, setLegendValues] = useState<LegendValues | null>(null);
   const [showVolume, setShowVolume] = useState(true);
   const [showCandles, setShowCandles] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [chartSize, setChartSize] = useState<{ width: number; height: number }>({ width: 600, height: 400 });
 
@@ -381,14 +382,14 @@ function IntradayAppInner({ app, data, setData, toolInput: _toolInput, hostConte
     }
   }, [symbolInput, handleRefresh]);
 
-  // Auto-refresh every 30 minutes
+  // Auto-refresh every 30 minutes (when enabled)
   useEffect(() => {
-    if (!data?.symbol) return;
+    if (!autoRefresh || !data?.symbol) return;
     const interval = setInterval(() => {
       handleRefresh(data.securityId);
     }, AUTO_REFRESH_INTERVAL);
     return () => clearInterval(interval);
-  }, [data?.symbol, data?.securityId, handleRefresh]);
+  }, [autoRefresh, data?.symbol, data?.securityId, handleRefresh]);
 
   const subtitle = data
     ? `${data.symbol} (ID: ${data.securityId}) · ${data.count} ticks · ${selectedTimeframe}`
@@ -417,7 +418,14 @@ function IntradayAppInner({ app, data, setData, toolInput: _toolInput, hostConte
         >
           {isRefreshing ? "Loading..." : "Refresh"}
         </button>
-        <span className={styles.autoRefreshNote}>Auto-refreshes every 30 min</span>
+        <label className={styles.checkboxLabel}>
+          <input
+            type="checkbox"
+            checked={autoRefresh}
+            onChange={(e) => setAutoRefresh(e.target.checked)}
+          />
+          Auto-refresh (30 min)
+        </label>
       </div>
 
       <div className={styles.overlays}>
