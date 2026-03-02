@@ -26,9 +26,9 @@ interface IntradayItem {
   date: string;
   lastSaleTime: string | null;
   securityId: number;
-  securityLastPrice: number | null;
+  securityLastRate: number | null;
   securityPercentageChange: number | null;
-  lastSellVolume: number | null;
+  lastSaleVolume: number | null;
   securityDailyAggVolume: number | null;
   securityDailyAggValue: number | null;
   securityDailyNumTrades: number | null;
@@ -111,7 +111,13 @@ function parseIntradayTime(item: IntradayItem): number | null {
   // lastSaleTime is like "14:35:22" or null, date is like "2026-03-01"
   if (!item.lastSaleTime || !item.date) return null;
   const dateStr = item.date.split("T")[0]; // handle ISO or plain date
-  const dt = new Date(`${dateStr}T${item.lastSaleTime}`);
+  // Try with time as-is, then strip milliseconds if needed
+  let dt = new Date(`${dateStr}T${item.lastSaleTime}`);
+  if (isNaN(dt.getTime())) {
+    // Try stripping fractional seconds (e.g. "14:35:22.123")
+    const timeClean = item.lastSaleTime.replace(/\.\d+$/, "");
+    dt = new Date(`${dateStr}T${timeClean}`);
+  }
   if (isNaN(dt.getTime())) return null;
   return Math.floor(dt.getTime() / 1000);
 }
@@ -121,15 +127,30 @@ function aggregateCandles(items: IntradayItem[], timeframe: IntradayTimeframe): 
   const bucketSeconds = minutes * 60;
 
   // Filter items with valid price and time, sort by time
+  // Coerce price/volume to number in case API returns strings
   const valid = items
     .map((item) => {
       const ts = parseIntradayTime(item);
-      return ts != null && item.securityLastPrice != null ? { ts, price: item.securityLastPrice, volume: item.lastSellVolume ?? 0 } : null;
+      const price = item.securityLastRate != null ? Number(item.securityLastRate) : NaN;
+      const volume = Number(item.lastSaleVolume ?? 0);
+      return ts != null && !isNaN(price) && price > 0 ? { ts, price, volume: isNaN(volume) ? 0 : volume } : null;
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
     .sort((a, b) => a.ts - b.ts);
 
-  if (valid.length === 0) return [];
+  if (valid.length === 0) {
+    // Debug: log why items were filtered out
+    if (items.length > 0) {
+      const sample = items[0];
+      console.warn(`[aggregateCandles] All ${items.length} items filtered out. Sample item:`, {
+        date: sample.date,
+        lastSaleTime: sample.lastSaleTime,
+        securityLastRate: sample.securityLastRate,
+        priceType: typeof sample.securityLastRate,
+      });
+    }
+    return [];
+  }
 
   const candles: AggregatedCandle[] = [];
   let currentBucket = Math.floor(valid[0].ts / bucketSeconds) * bucketSeconds;

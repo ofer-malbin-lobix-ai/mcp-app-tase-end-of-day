@@ -9,16 +9,16 @@ interface TaseDataHubIntradayItem {
   date: string;
   lastSaleTime: string | null;
   securityId: number;
-  securityStatusId: number | null;
-  securityLastPrice: number | null;
+  securityStatusId: string | null;
+  securityLastRate: number | null;
   securityPercentageChange: number | null;
   auctionLastSaleVolume: number | null;
-  lastSellVolume: number | null;
+  lastSaleVolume: number | null;
   securityDailyAggVolume: number | null;
   securityDailyAggValue: number | null;
   securityDailyNumTrades: number | null;
-  tradingPhaseId: number | null;
-  rateTypeId: number | null;
+  tradingPhaseId: string | null;
+  priceTypeId: string | null;
 }
 
 interface TaseDataHubIntradayResponse {

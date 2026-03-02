@@ -35,7 +35,7 @@
  *   symbols-candlestick     — show-symbols-candlestick-widget (TEVA, NICE, ESLT) + symbol switch
  *   symbols-table           — show-symbols-table-widget (TEVA, NICE, ESLT) + period buttons
  *   symbol-candlestick      — show-symbol-candlestick-widget (single symbol: TEVA)
- *   symbol-intraday         — show-intraday-candlestick-widget (TEVA) + timeframe switch
+ *   intraday-candlestick         — show-intraday-candlestick-widget (TEVA) + timeframe switch
  *   last-update             — show-last-update-end-of-day-widget + refresh
  *   landing                 — show-tase-market-landing-widget + Online tab
  *   all                     — run all tests sequentially
@@ -426,12 +426,12 @@ async function testSymbolCandlestick(page) {
 }
 
 async function testSymbolIntraday(page) {
-  console.log('\n🧪 Test: symbol-intraday');
+  console.log('\n🧪 Test: intraday-candlestick');
   await newChat(page);
   await sendMessage(page, `@${MCP_NAME} call show-intraday-candlestick-widget with securityIdOrSymbol: "TEVA"`);
   console.log('  Waiting for widget...');
   await sleep(35000);
-  await screenshot(page, 'symbol-intraday-initial');
+  await screenshot(page, 'intraday-candlestick-initial');
 
   const frame = await waitForWidgetFrame(page, { selector: 'button, canvas', timeout: 45000 });
   if (!frame) { console.log('  ⚠️  Widget frame not found'); return; }
@@ -439,14 +439,14 @@ async function testSymbolIntraday(page) {
   const clicked5m = await clickButton(frame, '5m');
   console.log(`  ${clicked5m ? '✅' : '⚠️ '} 5m timeframe ${clicked5m ? 'clicked' : 'not found'}`);
   await sleep(3000);
-  await screenshot(page, 'symbol-intraday-5m');
+  await screenshot(page, 'intraday-candlestick-5m');
 
   const clicked1h = await clickButton(frame, '1h');
   console.log(`  ${clicked1h ? '✅' : '⚠️ '} 1h timeframe ${clicked1h ? 'clicked' : 'not found'}`);
   await sleep(3000);
-  await screenshot(page, 'symbol-intraday-1h');
+  await screenshot(page, 'intraday-candlestick-1h');
 
-  console.log('  ✅ symbol-intraday passed');
+  console.log('  ✅ intraday-candlestick passed');
 }
 
 async function testLastUpdate(page) {
@@ -625,13 +625,13 @@ async function testSymbolCandlestickDesktop() {
 }
 
 async function testSymbolIntradayDesktop() {
-  console.log('\n🧪 Test: symbol-intraday (Claude Desktop)');
+  console.log('\n🧪 Test: intraday-candlestick (Claude Desktop)');
   await newChatDesktop();
   await sendMessageDesktop('call show-intraday-candlestick-widget with securityIdOrSymbol: "TEVA"');
   console.log('  Waiting for widget...');
   await sleep(40000);
-  await screenshotDesktop('cd-symbol-intraday');
-  console.log('  ✅ symbol-intraday (Claude Desktop) passed');
+  await screenshotDesktop('cd-intraday-candlestick');
+  console.log('  ✅ intraday-candlestick (Claude Desktop) passed');
 }
 
 async function testLastUpdateDesktop() {
@@ -670,7 +670,7 @@ const CHATGPT_TEST_MAP = {
   'symbols-candlestick':      testSymbolsCandlestick,
   'symbols-table':            testSymbolsTable,
   'symbol-candlestick':       testSymbolCandlestick,
-  'symbol-intraday':          testSymbolIntraday,
+  'intraday-candlestick':          testSymbolIntraday,
   'last-update':              testLastUpdate,
   'landing':                  testLanding,
 };
@@ -689,7 +689,7 @@ const CLAUDE_DESKTOP_TEST_MAP = {
   'symbols-candlestick':      testSymbolsCandlestickDesktop,
   'symbols-table':            testSymbolsTableDesktop,
   'symbol-candlestick':       testSymbolCandlestickDesktop,
-  'symbol-intraday':          testSymbolIntradayDesktop,
+  'intraday-candlestick':          testSymbolIntradayDesktop,
   'last-update':              testLastUpdateDesktop,
   'landing':                  testLandingDesktop,
 };

@@ -68,9 +68,9 @@ export interface IntradayItem {
   date: string;
   lastSaleTime: string | null;
   securityId: number;
-  securityLastPrice: number | null;
+  securityLastRate: number | null;
   securityPercentageChange: number | null;
-  lastSellVolume: number | null;
+  lastSaleVolume: number | null;
   securityDailyAggVolume: number | null;
   securityDailyAggValue: number | null;
   securityDailyNumTrades: number | null;

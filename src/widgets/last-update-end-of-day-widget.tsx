@@ -19,12 +19,12 @@ interface LastUpdateItem {
   securityId: number;
   symbol: string | null;
   securityStatusId: string | null;
-  securityLastPrice: string | null;
+  securityLastRate: number | null;
   securityPercentageChange: number | null;
   auctionLastSaleVolume: number | null;
-  lastSellVolume: number | null;
-  securityDailyAggVolume: string | null;
-  securityDailyAggValue: string | null;
+  lastSaleVolume: number | null;
+  securityDailyAggVolume: number | null;
+  securityDailyAggValue: number | null;
   securityDailyNumTrades: number | null;
   tradingPhaseId: string | null;
   priceTypeId: string | null;
@@ -223,7 +223,7 @@ function LastUpdateAppInner({
         header: "Security ID",
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor("securityLastPrice", {
+      columnHelper.accessor("securityLastRate", {
         header: "Last Price",
         cell: (info) => {
           const value = info.getValue();
@@ -252,8 +252,8 @@ function LastUpdateAppInner({
         cell: (info) => <span className={styles.textCell}>{info.getValue() ?? "—"}</span>,
         enableColumnFilter: false,
       }),
-      columnHelper.accessor("lastSellVolume", {
-        header: "Last Sell Vol",
+      columnHelper.accessor("lastSaleVolume", {
+        header: "Last Sale Vol",
         cell: (info) => {
           const value = info.getValue();
           return (

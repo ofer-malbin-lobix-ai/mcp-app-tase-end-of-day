@@ -10,12 +10,12 @@ export interface TaseDataHubLastUpdateItem {
   lastSaleTime: string | null;
   securityId: number;
   securityStatusId: string | null;
-  securityLastPrice: string | null;
+  securityLastRate: number | null;
   securityPercentageChange: number | null;
   auctionLastSaleVolume: number | null;
-  lastSellVolume: number | null;
-  securityDailyAggVolume: string | null;
-  securityDailyAggValue: string | null;
+  lastSaleVolume: number | null;
+  securityDailyAggVolume: number | null;
+  securityDailyAggValue: number | null;
   securityDailyNumTrades: number | null;
   tradingPhaseId: string | null;
   priceTypeId: string | null;
