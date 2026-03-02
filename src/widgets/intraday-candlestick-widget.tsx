@@ -107,33 +107,19 @@ function extractIntradayData(callToolResult: CallToolResult | null | undefined):
 
 // ─── Client-side Candle Aggregation ─────────────────────────────────────
 
-/**
- * Get Israel timezone UTC offset in minutes for a given date (handles DST).
- * IST = UTC+2, IDT = UTC+3.
- */
-function getIsraelOffsetMinutes(dateStr: string): number {
-  const utcDate = new Date(`${dateStr}T12:00:00Z`);
-  const ilParts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Jerusalem",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  }).formatToParts(utcDate);
-  const ilHour = parseInt(ilParts.find(p => p.type === "hour")!.value, 10);
-  const ilMinute = parseInt(ilParts.find(p => p.type === "minute")!.value, 10);
-  return (ilHour - 12) * 60 + ilMinute; // offset from UTC in minutes
-}
-
 function parseIntradayTime(item: IntradayItem): number | null {
   // lastSaleTime is like "14:35:22" or null, date is like "2026-03-01"
-  // TASE times are Israel time — interpret as Asia/Jerusalem regardless of user's timezone
+  // TASE times are Israel time. lightweight-charts displays timestamps in local TZ,
+  // so we adjust by the local offset to make the chart always show Israel wall-clock time.
   if (!item.lastSaleTime || !item.date) return null;
   const dateStr = item.date.split("T")[0];
   const timeClean = item.lastSaleTime.replace(/\.\d+$/, "");
-  // Parse as UTC first, then subtract Israel offset to get the true UTC timestamp
+  // Parse Israel time as if it were UTC
   const asUtc = new Date(`${dateStr}T${timeClean}Z`);
   if (isNaN(asUtc.getTime())) return null;
-  const offsetMin = getIsraelOffsetMinutes(dateStr);
-  return Math.floor(asUtc.getTime() / 1000) - offsetMin * 60;
+  // Adjust so lightweight-charts (which adds local TZ offset) displays the Israel time
+  const localOffsetMs = new Date().getTimezoneOffset() * 60 * 1000;
+  return Math.floor((asUtc.getTime() + localOffsetMs) / 1000);
 }
 
 function aggregateCandles(items: IntradayItem[], timeframe: IntradayTimeframe): AggregatedCandle[] {
@@ -540,12 +526,6 @@ function IntradayAppInner({ app, data, setData, toolInput: _toolInput, hostConte
               },
               rightPriceScale: {
                 borderColor: "rgba(197, 203, 206, 0.4)",
-              },
-              localization: {
-                timeFormatter: (ts: number) => {
-                  const d = new Date(ts * 1000);
-                  return d.toLocaleTimeString("en-GB", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit" });
-                },
               },
               timeScale: {
                 borderColor: "rgba(197, 203, 206, 0.4)",
