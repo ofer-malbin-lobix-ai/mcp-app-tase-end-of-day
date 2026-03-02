@@ -62,7 +62,7 @@ const TOOL_GROUPS = [
     ],
   },
   {
-    title: "Intraday",
+    title: "Online",
     tools: [
       { icon: "\u{23F1}\u{FE0F}", name: "Intraday Candlestick", description: "Intraday candlestick chart with configurable timeframes", prompt: "call show-intraday-candlestick-widget" },
     ],
