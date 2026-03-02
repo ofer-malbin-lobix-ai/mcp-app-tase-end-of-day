@@ -36,7 +36,8 @@
  *   symbols-table           — show-symbols-table-widget (TEVA, NICE, ESLT) + period buttons
  *   symbol-candlestick      — show-symbol-candlestick-widget (single symbol: TEVA)
  *   symbol-intraday         — show-intraday-candlestick-widget (TEVA) + timeframe switch
- *   landing                 — show-tase-market-landing-widget
+ *   last-update             — show-last-update-end-of-day-widget + refresh
+ *   landing                 — show-tase-market-landing-widget + Online tab
  *   all                     — run all tests sequentially
  */
 
@@ -448,13 +449,46 @@ async function testSymbolIntraday(page) {
   console.log('  ✅ symbol-intraday passed');
 }
 
+async function testLastUpdate(page) {
+  console.log('\n🧪 Test: last-update');
+  await newChat(page);
+  await sendMessage(page, `@${MCP_NAME} call show-last-update-end-of-day-widget`);
+  console.log('  Waiting for widget...');
+  await sleep(35000);
+  await screenshot(page, 'last-update-initial');
+
+  const frame = await waitForWidgetFrame(page, { selector: 'table, button' });
+  if (!frame) { console.log('  ⚠️  Widget frame not found'); return; }
+
+  const refreshClicked = await clickButton(frame, 'Refresh');
+  console.log(`  ${refreshClicked ? '✅' : '⚠️ '} Refresh button ${refreshClicked ? 'clicked' : 'not found'}`);
+  await sleep(8000);
+  await screenshot(page, 'last-update-refreshed');
+
+  console.log('  ✅ last-update passed');
+}
+
 async function testLanding(page) {
   console.log('\n🧪 Test: landing');
   await newChat(page);
   await sendMessage(page, `@${MCP_NAME} call show-tase-market-landing-widget`);
   console.log('  Waiting for widget...');
   await sleep(30000);
-  await screenshot(page, 'landing');
+  await screenshot(page, 'landing-market');
+
+  const frame = await waitForWidgetFrame(page, { selector: 'button' });
+  if (!frame) { console.log('  ⚠️  Widget frame not found'); return; }
+
+  const onlineClicked = await clickButton(frame, 'Online');
+  console.log(`  ${onlineClicked ? '✅' : '⚠️ '} Online tab ${onlineClicked ? 'clicked' : 'not found'}`);
+  await sleep(1500);
+  await screenshot(page, 'landing-online');
+
+  const hasLastUpdate = await frame.evaluate(() => {
+    return !!Array.from(document.querySelectorAll('button, span, div')).find(el => el.textContent.includes('Last Update'));
+  });
+  console.log(`  ${hasLastUpdate ? '✅' : '⚠️ '} Last Update card ${hasLastUpdate ? 'found' : 'not found'}`);
+
   console.log('  ✅ landing passed');
 }
 
@@ -600,6 +634,16 @@ async function testSymbolIntradayDesktop() {
   console.log('  ✅ symbol-intraday (Claude Desktop) passed');
 }
 
+async function testLastUpdateDesktop() {
+  console.log('\n🧪 Test: last-update (Claude Desktop)');
+  await newChatDesktop();
+  await sendMessageDesktop('call show-last-update-end-of-day-widget');
+  console.log('  Waiting for widget...');
+  await sleep(35000);
+  await screenshotDesktop('cd-last-update');
+  console.log('  ✅ last-update (Claude Desktop) passed');
+}
+
 async function testLandingDesktop() {
   console.log('\n🧪 Test: landing (Claude Desktop)');
   await newChatDesktop();
@@ -627,6 +671,7 @@ const CHATGPT_TEST_MAP = {
   'symbols-table':            testSymbolsTable,
   'symbol-candlestick':       testSymbolCandlestick,
   'symbol-intraday':          testSymbolIntraday,
+  'last-update':              testLastUpdate,
   'landing':                  testLanding,
 };
 
@@ -645,6 +690,7 @@ const CLAUDE_DESKTOP_TEST_MAP = {
   'symbols-table':            testSymbolsTableDesktop,
   'symbol-candlestick':       testSymbolCandlestickDesktop,
   'symbol-intraday':          testSymbolIntradayDesktop,
+  'last-update':              testLastUpdateDesktop,
   'landing':                  testLandingDesktop,
 };
 
