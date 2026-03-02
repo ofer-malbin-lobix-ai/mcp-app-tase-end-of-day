@@ -29,6 +29,8 @@ import { createFetchSymbolsFromTaseDataHubRouter } from "./src/tase-data-hub/fet
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
 import { createFetchIntradayFromTaseDataHubRouter } from "./src/tase-data-hub/fetch-intraday-from-tase-data-hub.js";
 // @ts-ignore — imported from source at runtime (not compiled by tsc)
+import { createFetchLastUpdateFromTaseDataHubRouter } from "./src/tase-data-hub/fetch-last-update-from-tase-data-hub.js";
+// @ts-ignore — imported from source at runtime (not compiled by tsc)
 import { dbProviders } from "./src/db/db-api.js";
 
 /**
@@ -78,6 +80,9 @@ export async function startStreamableHTTPServer(
 
   // Mount fetch-intraday-from-tase-data-hub route (backend API, no auth — pass-through to TASE Data Hub)
   app.use(createFetchIntradayFromTaseDataHubRouter());
+
+  // Mount fetch-last-update-from-tase-data-hub route (backend API, no auth — pass-through to TASE Data Hub)
+  app.use(createFetchLastUpdateFromTaseDataHubRouter());
 
   // Helper to extract userId from request (works with mcpAuthClerk)
   const resolveUserId = (req: Request): string | null => {
