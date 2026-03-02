@@ -294,6 +294,10 @@ function EndOfDayAppInner({
           <span className={styles.symbolCell}>{info.getValue()}</span>
         ),
       }),
+      columnHelper.accessor("securityId", {
+        header: "Security ID",
+        cell: (info) => info.getValue(),
+      }),
       columnHelper.accessor("companyName", {
         header: "Company",
         cell: (info) => <span className={styles.textCell}>{info.getValue() ?? "—"}</span>,
@@ -505,6 +509,7 @@ function EndOfDayAppInner({
   // Default column visibility: show only the most important columns.
   // Users can reveal any hidden column via the Columns picker.
   const initialColumnVisibility = useMemo<Record<string, boolean>>(() => ({
+    securityId: false,
     tradeDate: false,
     subSector: false,
     marketType: false,

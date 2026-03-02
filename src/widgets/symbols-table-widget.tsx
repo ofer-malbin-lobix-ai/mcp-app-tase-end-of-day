@@ -23,7 +23,7 @@ const PERIODS: { value: HeatmapPeriod; label: string }[] = [
   { value: "3M", label: "3M" },
 ];
 
-type SortKey = "symbol" | "companyName" | "closingPrice" | "change" | "turnover" | "rsi14" | "ez";
+type SortKey = "symbol" | "securityId" | "companyName" | "closingPrice" | "change" | "turnover" | "rsi14" | "ez";
 type SortDir = "asc" | "desc";
 
 interface StockData {
@@ -190,7 +190,7 @@ function SymbolsTableApp() {
         setSortDir((d) => (d === "asc" ? "desc" : "asc"));
         return prev;
       }
-      const numericCols: SortKey[] = ["closingPrice", "change", "turnover", "rsi14", "ez"];
+      const numericCols: SortKey[] = ["securityId", "closingPrice", "change", "turnover", "rsi14", "ez"];
       setSortDir(numericCols.includes(key) ? "desc" : "asc");
       return key;
     });
@@ -288,6 +288,9 @@ function SymbolsTableApp() {
                 <th {...thProps("symbol", styles.thLeft)}>
                   Symbol <SortIcon col="symbol" sortKey={sortKey} sortDir={sortDir} />
                 </th>
+                <th {...thProps("securityId")}>
+                  Sec ID <SortIcon col="securityId" sortKey={sortKey} sortDir={sortDir} />
+                </th>
                 <th {...thProps("companyName", styles.thLeft)}>
                   Company <SortIcon col="companyName" sortKey={sortKey} sortDir={sortDir} />
                 </th>
@@ -312,6 +315,7 @@ function SymbolsTableApp() {
               {displayRows.map((row) => (
                 <tr key={row.symbol} className={styles.tr}>
                   <td className={`${styles.tdLeft} ${styles.tdSymbol}`}>{row.symbol}</td>
+                  <td className={styles.td}>{row.securityId}</td>
                   <td className={`${styles.tdLeft} ${styles.tdCompany}`} title={row.companyName ?? ""}>
                     {row.companyName ?? "—"}
                   </td>

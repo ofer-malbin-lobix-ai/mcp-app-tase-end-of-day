@@ -289,6 +289,10 @@ function EndOfDaySymbolsAppInner({
           <span className={styles.symbolCell}>{info.getValue()}</span>
         ),
       }),
+      columnHelper.accessor("securityId", {
+        header: "Security ID",
+        cell: (info) => info.getValue(),
+      }),
       columnHelper.accessor("marketType", {
         header: "Type",
         cell: (info) => <span className={styles.textCell}>{info.getValue() ?? "—"}</span>,
@@ -483,6 +487,7 @@ function EndOfDaySymbolsAppInner({
   const rows = useMemo(() => data?.items ?? [], [data?.items]);
 
   const initialColumnVisibility = useMemo<Record<string, boolean>>(() => ({
+    securityId: false,
     marketType: false,
     openingPrice: false,
     high: false,
