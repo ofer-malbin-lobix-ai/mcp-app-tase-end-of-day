@@ -36,13 +36,16 @@ interface TaseDataHubIntradayResponse {
  * Fetch intraday trading data from TASE Data Hub for a single security.
  * Pass-through API — no DB storage.
  */
-export async function fetchIntraday(securityId: number): Promise<TaseDataHubIntradayItem[]> {
+export async function fetchIntraday(securityId: number, securityStatusId = "A", tradingPhaseId = "T"): Promise<TaseDataHubIntradayItem[]> {
   const apiKey = process.env.TASE_DATA_HUB_API_KEY;
   if (!apiKey) {
     throw new Error("TASE_DATA_HUB_API_KEY environment variable is not set");
   }
 
-  const url = `${TASE_DATA_HUB_INTRADAY_URL}?securityId=${securityId}`;
+  const params = new URLSearchParams({ securityId: String(securityId) });
+  if (securityStatusId) params.set("securityStatusId", securityStatusId);
+  if (tradingPhaseId) params.set("tradingPhaseId", tradingPhaseId);
+  const url = `${TASE_DATA_HUB_INTRADAY_URL}?${params}`;
   console.error(`[fetch-intraday-from-tase-data-hub] Fetching from: ${url}`);
 
   const response = await fetch(url, {
@@ -68,7 +71,7 @@ export async function fetchIntraday(securityId: number): Promise<TaseDataHubIntr
 
 /**
  * Creates an Express router with the /api/fetch-intraday-from-tase-data-hub endpoint.
- * GET /api/fetch-intraday-from-tase-data-hub?securityId=22
+ * GET /api/fetch-intraday-from-tase-data-hub?securityId=22&securityStatusId=A&tradingPhaseId=T
  */
 export function createFetchIntradayFromTaseDataHubRouter(): Router {
   const router = Router();
@@ -93,7 +96,10 @@ export function createFetchIntradayFromTaseDataHubRouter(): Router {
         return;
       }
 
-      const items = await fetchIntraday(securityId);
+      const securityStatusId = (req.query.securityStatusId as string) || "A";
+      const tradingPhaseId = (req.query.tradingPhaseId as string) || "T";
+
+      const items = await fetchIntraday(securityId, securityStatusId, tradingPhaseId);
       res.json({ securityId, items, total: items.length });
     } catch (error) {
       console.error("[fetch-intraday-from-tase-data-hub] Error:", error);
