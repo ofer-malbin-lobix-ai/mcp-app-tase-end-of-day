@@ -10,7 +10,7 @@ export interface TaseDataHubLastUpdateItem {
   lastSaleTime: string | null;
   securityId: number;
   securityStatusId: string | null;
-  securityLastRate: number | null;
+  securityLastPrice: number | null;
   securityPercentageChange: number | null;
   auctionLastSaleVolume: number | null;
   lastSaleVolume: number | null;
@@ -23,6 +23,10 @@ export interface TaseDataHubLastUpdateItem {
 
 interface TaseDataHubLastUpdateResponse {
   securitiesLastUpdate?: {
+    result: TaseDataHubLastUpdateItem[];
+    total: number;
+  };
+  getSecuritiesLastUpdate?: {
     result: TaseDataHubLastUpdateItem[];
     total: number;
   };
@@ -57,7 +61,8 @@ export async function fetchLastUpdate(securityId?: number): Promise<TaseDataHubL
   }
 
   const data = (await response.json()) as TaseDataHubLastUpdateResponse;
-  const items = data.securitiesLastUpdate?.result ?? [];
+  const payload = data.securitiesLastUpdate ?? data.getSecuritiesLastUpdate;
+  const items = payload?.result ?? [];
 
   console.error(`[fetch-last-update-from-tase-data-hub] Received ${items.length} items${securityId != null ? ` for securityId ${securityId}` : ""}`);
 

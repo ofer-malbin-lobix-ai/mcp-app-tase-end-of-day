@@ -19,7 +19,7 @@ interface LastUpdateItem {
   securityId: number;
   symbol: string | null;
   securityStatusId: string | null;
-  securityLastRate: number | null;
+  securityLastPrice: number | null;
   securityPercentageChange: number | null;
   auctionLastSaleVolume: number | null;
   lastSaleVolume: number | null;
@@ -223,7 +223,7 @@ function LastUpdateAppInner({
         header: "Security ID",
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor("securityLastRate", {
+      columnHelper.accessor("securityLastPrice", {
         header: "Last Price",
         cell: (info) => {
           const value = info.getValue();
