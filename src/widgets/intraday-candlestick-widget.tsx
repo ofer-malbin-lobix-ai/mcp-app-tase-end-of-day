@@ -109,17 +109,14 @@ function extractIntradayData(callToolResult: CallToolResult | null | undefined):
 
 function parseIntradayTime(item: IntradayItem): number | null {
   // lastSaleTime is like "14:35:22" or null, date is like "2026-03-01"
-  // TASE times are Israel time. lightweight-charts displays timestamps in local TZ,
-  // so we adjust by the local offset to make the chart always show Israel wall-clock time.
+  // TASE times are Israel time. lightweight-charts displays UTC timestamps as-is,
+  // so we parse Israel wall-clock time as UTC — the chart shows the correct IL time.
   if (!item.lastSaleTime || !item.date) return null;
   const dateStr = item.date.split("T")[0];
   const timeClean = item.lastSaleTime.replace(/\.\d+$/, "");
-  // Parse Israel time as if it were UTC
-  const asUtc = new Date(`${dateStr}T${timeClean}Z`);
-  if (isNaN(asUtc.getTime())) return null;
-  // Adjust so lightweight-charts (which adds local TZ offset) displays the Israel time
-  const localOffsetMs = new Date().getTimezoneOffset() * 60 * 1000;
-  return Math.floor((asUtc.getTime() + localOffsetMs) / 1000);
+  const dt = new Date(`${dateStr}T${timeClean}Z`);
+  if (isNaN(dt.getTime())) return null;
+  return Math.floor(dt.getTime() / 1000);
 }
 
 function aggregateCandles(items: IntradayItem[], timeframe: IntradayTimeframe): AggregatedCandle[] {
